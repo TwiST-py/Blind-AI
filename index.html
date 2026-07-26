@@ -820,7 +820,7 @@
   <canvas id="bg-canvas"></canvas>
 
   <nav>
-    <div class="nav-logo">
+    <div class="nav-logo" onclick="window.scrollTo({top:0, behavior:'smooth'})" style="cursor:pointer;">
       <img src="logo.png" alt="Blind AI">
       <span>Blind AI</span>
     </div>
@@ -829,6 +829,7 @@
       <li><a href="#features">Features</a></li>
       <li><a href="#demo">Demo</a></li>
       <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#contact">Contact</a></li>
     </ul>
     <button class="nav-cta" onclick="document.getElementById('early-access').scrollIntoView({behavior:'smooth'})">Get Early Access</button>
   </nav>
@@ -849,7 +850,7 @@
         no special hardware required.
       </p>
       <div class="hero-buttons">
-        <button class="btn-primary">Start Free Trial</button>
+        <button class="btn-primary" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Start Trial</button>
         <button class="btn-secondary">Watch Demo</button>
       </div>
       <div class="hero-logo">
@@ -1030,7 +1031,7 @@
     </div>
   </section>
 
-  <section class="cta">
+  <section class="cta" id="contact">
     <h2 class="reveal">Ready to Hear Your World?</h2>
     <p class="reveal">Join thousands who are already navigating with confidence.</p>
     <div class="hero-buttons reveal">
@@ -1040,8 +1041,7 @@
 
   <footer>
     <div class="footer-links">
-      <a href="#">Privacy</a>
-      <a href="#">Terms</a>
+      <a href="#" onclick="openPrivacyModal(); return false;">Privacy</a>
       <a href="#pricing">Accessibility</a>
       <a href="#" onclick="openContactModal(); return false;">Support</a>
     </div>
@@ -1067,6 +1067,42 @@
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeContactModal()">Cancel</button>
         <button class="btn-primary" id="contactSubmitBtn" onclick="submitContactModal()">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="privacyModalOverlay">
+    <div class="modal-card" style="max-width:640px; max-height:80vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <h3>Privacy Policy</h3>
+        <button class="modal-close" onclick="closePrivacyModal()" aria-label="Close">✕</button>
+      </div>
+      <div style="overflow-y:auto; padding-right:0.5rem; color:var(--text-secondary); font-size:0.92rem; line-height:1.7;">
+        <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1.25rem;">Last updated: July 2026</p>
+
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">On-Device Processing</h4>
+        <p style="margin-bottom:1.25rem;">Blind AI performs all camera, image, and audio processing directly on your device. Visual data captured by your camera is never uploaded to our servers or any third party, and is not stored beyond the current session unless you explicitly save a clip.</p>
+
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Information We Collect</h4>
+        <p style="margin-bottom:1.25rem;">We collect only what's needed to operate your account and device: your name, email address, shipping address, and device diagnostics (crash logs, battery, firmware version). We do not collect or store the contents of your camera feed.</p>
+
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Payments &amp; Card Data</h4>
+        <p style="margin-bottom:1.25rem;">Orders are processed through a PCI-DSS compliant payment processor. Blind AI never sees or stores your full credit card number, CVV, or expiry date — this data goes straight from your browser to the payment processor over an encrypted connection and is tokenized before it ever reaches us.</p>
+
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Encryption &amp; Transport Security</h4>
+        <p style="margin-bottom:1.25rem;">All data transmitted between your browser or device and our servers is encrypted in transit using TLS/SSL. Sensitive fields (payment tokens, account credentials) are also encrypted at rest.</p>
+
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Application Security</h4>
+        <p style="margin-bottom:1.25rem;">We follow secure development practices to protect against common web vulnerabilities, including input validation and parameterized queries to prevent injection attacks, regular dependency and security audits, and access controls limiting who can view customer data internally.</p>
+
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Cookies</h4>
+        <p style="margin-bottom:1.25rem;">We use minimal, functional cookies to keep you logged in and remember preferences. We do not use third-party advertising trackers.</p>
+
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Your Rights</h4>
+        <p style="margin-bottom:0.5rem;">You can request a copy of your data, ask us to correct it, or request deletion of your account and associated data at any time by contacting our support team.</p>
+      </div>
+      <div class="modal-actions" style="margin-top:1.25rem;">
+        <button class="btn-primary" onclick="closePrivacyModal()">Got It</button>
       </div>
     </div>
   </div>
@@ -1245,6 +1281,17 @@
     }
     contactOverlay.addEventListener('click', (e) => {
       if (e.target === contactOverlay) closeContactModal();
+    });
+
+    const privacyOverlay = document.getElementById('privacyModalOverlay');
+    function openPrivacyModal() {
+      privacyOverlay.classList.add('active');
+    }
+    function closePrivacyModal() {
+      privacyOverlay.classList.remove('active');
+    }
+    privacyOverlay.addEventListener('click', (e) => {
+      if (e.target === privacyOverlay) closePrivacyModal();
     });
   </script>
 </body>
