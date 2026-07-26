@@ -848,16 +848,16 @@
   <canvas id="bg-canvas"></canvas>
 
   <nav>
-    <div class="nav-logo" onclick="window.scrollTo({top:0, behavior:'smooth'})" style="cursor:pointer;">
+    <div class="nav-logo" onclick="goToHome()" style="cursor:pointer;">
       <img src="logo.png" alt="Blind AI">
       <span>Blind AI</span>
     </div>
     <ul class="nav-links">
-      <li><a href="javascript:void(0)" data-i18n="nav_how" onclick="scrollToSection('how')">How It Works</a></li>
-      <li><a href="javascript:void(0)" data-i18n="nav_features" onclick="scrollToSection('features')">Features</a></li>
-      <li><a href="javascript:void(0)" data-i18n="nav_demo" onclick="scrollToSection('demo')">Demo</a></li>
-      <li><a href="javascript:void(0)" data-i18n="nav_pricing" onclick="scrollToSection('pricing')">Pricing</a></li>
-      <li><a href="javascript:void(0)" data-i18n="nav_contact" onclick="scrollToSection('contact')">Contact</a></li>
+      <li><a href="/how" data-i18n="nav_how" onclick="return goToSection(event, 'how')">How It Works</a></li>
+      <li><a href="/features" data-i18n="nav_features" onclick="return goToSection(event, 'features')">Features</a></li>
+      <li><a href="/demo" data-i18n="nav_demo" onclick="return goToSection(event, 'demo')">Demo</a></li>
+      <li><a href="/pricing" data-i18n="nav_pricing" onclick="return goToSection(event, 'pricing')">Pricing</a></li>
+      <li><a href="/contact" data-i18n="nav_contact" onclick="return goToSection(event, 'contact')">Contact</a></li>
     </ul>
     <div class="lang-switch" id="langSwitch">
       <button class="lang-btn" data-lang="en">En</button>
@@ -1075,7 +1075,7 @@
   <footer>
     <div class="footer-links">
       <a href="#" data-i18n="footer_privacy" onclick="openPrivacyModal(); return false;">Privacy</a>
-      <a href="javascript:void(0)" data-i18n="footer_accessibility" onclick="scrollToSection('pricing')">Accessibility</a>
+      <a href="/pricing" data-i18n="footer_accessibility" onclick="return goToSection(event, 'pricing')">Accessibility</a>
       <a href="#" data-i18n="footer_support" onclick="openContactModal(); return false;">Support</a>
     </div>
     <p data-i18n="footer_copyright">© 2026 Blind AI, Inc. Built with care for the visually impaired community.</p>
@@ -1377,10 +1377,56 @@
       btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
     });
 
-    function scrollToSection(id) {
+    const sectionSlugs = ['how', 'features', 'demo', 'pricing', 'contact'];
+
+    function safePushState(path) {
+      try { history.pushState(null, '', path); } catch (err) { /* blocked in sandboxed/preview contexts, safe to ignore */ }
+    }
+    function safeReplaceState(path) {
+      try { history.replaceState(null, '', path); } catch (err) { /* blocked in sandboxed/preview contexts, safe to ignore */ }
+    }
+
+    function goToSection(e, id) {
+      if (e) e.preventDefault();
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({ behavior: 'smooth' });
+      safePushState('/' + id);
+      return false;
     }
+
+    function goToHome() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      safePushState('/');
+    }
+
+    // If a GitHub Pages 404 fallback redirected us here with a saved path, restore it
+    (function () {
+      const redirect = sessionStorage.redirect;
+      delete sessionStorage.redirect;
+      if (redirect) {
+        safeReplaceState(redirect);
+      }
+    })();
+
+    // On load, if the URL already points at a known section path, scroll there
+    window.addEventListener('load', () => {
+      const path = window.location.pathname.replace(/^\/|\/$/g, '');
+      if (sectionSlugs.includes(path)) {
+        const el = document.getElementById(path);
+        if (el) setTimeout(() => el.scrollIntoView({ behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' }), 50);
+      }
+    });
+
+    // Support browser back/forward buttons
+    window.addEventListener('popstate', () => {
+      const path = window.location.pathname.replace(/^\/|\/$/g, '');
+      if (sectionSlugs.includes(path)) {
+        const el = document.getElementById(path);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
 
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
