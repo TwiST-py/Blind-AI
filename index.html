@@ -115,6 +115,32 @@
     }
     .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,229,255,0.3); }
 
+    .lang-switch {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.3rem;
+    }
+    .lang-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.35rem 0.7rem;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .lang-btn:hover { color: var(--text-primary); }
+    .lang-btn.active {
+      background: var(--gradient-1);
+      color: #fff;
+    }
+
     .hero {
       position: relative;
       min-height: 100vh;
@@ -812,6 +838,8 @@
       .hero { padding-top: 6rem; }
       section { padding: 4rem 4%; }
       .demo-controls { flex-direction: column; align-items: stretch; }
+      .lang-switch { padding: 0.25rem; }
+      .lang-btn { padding: 0.3rem 0.55rem; font-size: 0.75rem; }
     }
   </style>
 </head>
@@ -825,33 +853,38 @@
       <span>Blind AI</span>
     </div>
     <ul class="nav-links">
-      <li><a href="#how">How It Works</a></li>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#demo">Demo</a></li>
-      <li><a href="#pricing">Pricing</a></li>
-      <li><a href="#contact">Contact</a></li>
+      <li><a href="javascript:void(0)" data-i18n="nav_how" onclick="scrollToSection('how')">How It Works</a></li>
+      <li><a href="javascript:void(0)" data-i18n="nav_features" onclick="scrollToSection('features')">Features</a></li>
+      <li><a href="javascript:void(0)" data-i18n="nav_demo" onclick="scrollToSection('demo')">Demo</a></li>
+      <li><a href="javascript:void(0)" data-i18n="nav_pricing" onclick="scrollToSection('pricing')">Pricing</a></li>
+      <li><a href="javascript:void(0)" data-i18n="nav_contact" onclick="scrollToSection('contact')">Contact</a></li>
     </ul>
-    <button class="nav-cta" onclick="document.getElementById('early-access').scrollIntoView({behavior:'smooth'})">Get Early Access</button>
+    <div class="lang-switch" id="langSwitch">
+      <button class="lang-btn" data-lang="en">En</button>
+      <button class="lang-btn" data-lang="ru">Ru</button>
+      <button class="lang-btn" data-lang="az">Az</button>
+    </div>
+    <button class="nav-cta" data-i18n="nav_cta" onclick="document.getElementById('early-access').scrollIntoView({behavior:'smooth'})">Get Early Access</button>
   </nav>
 
   <section class="hero">
     <div class="hero-content">
       <div class="hero-badge">
         <span class="pulse"></span>
-        Now in Beta — Join 2,000+ early users
+        <span data-i18n="hero_badge">Now in Beta — Join 2,000+ early users</span>
       </div>
-      <h1>
+      <h1 data-i18n="hero_title">
         See the World<br>
         <span class="gradient-text">Through Sound</span>
       </h1>
-      <p>
+      <p data-i18n="hero_desc">
         Blind AI transforms your surroundings into rich, spatial audio.
         Using just your camera and earbuds, navigate the world with confidence —
         no special hardware required.
       </p>
       <div class="hero-buttons">
-        <button class="btn-primary" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Start Trial</button>
-        <button class="btn-secondary">Watch Demo</button>
+        <button class="btn-primary" data-i18n="hero_btn_trial" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Start Trial</button>
+        <button class="btn-secondary" data-i18n="hero_btn_demo">Watch Demo</button>
       </div>
       <div class="hero-logo">
         <img src="logo.png" alt="Blind AI Logo">
@@ -861,85 +894,85 @@
 
   <section class="how-it-works" id="how">
     <div class="section-header reveal">
-      <h2>How It <span class="gradient-text">Works</span></h2>
-      <p>Three simple steps to a new way of experiencing the world around you.</p>
+      <h2 data-i18n="how_title">How It <span class="gradient-text">Works</span></h2>
+      <p data-i18n="how_desc">Three simple steps to a new way of experiencing the world around you.</p>
     </div>
     <div class="steps">
       <div class="step-card reveal">
         <div class="step-number">1</div>
-        <h3>Connect Your Earbuds</h3>
-        <p>Pair any Bluetooth earbuds or AirPods with your smartphone. No proprietary hardware needed — use what you already own.</p>
+        <h3 data-i18n="how_1_title">Connect Your Earbuds</h3>
+        <p data-i18n="how_1_desc">Pair any Bluetooth earbuds or AirPods with your smartphone. No proprietary hardware needed — use what you already own.</p>
       </div>
       <div class="step-card reveal">
         <div class="step-number">2</div>
-        <h3>Point the Camera</h3>
-        <p>Hold your phone in front of you or use a chest-mounted holder. Our AI sees what you see in real time.</p>
+        <h3 data-i18n="how_2_title">Point the Camera</h3>
+        <p data-i18n="how_2_desc">Hold your phone in front of you or use a chest-mounted holder. Our AI sees what you see in real time.</p>
       </div>
       <div class="step-card reveal">
         <div class="step-number">3</div>
-        <h3>Hear Your World</h3>
-        <p>Receive instant spatial audio descriptions. Objects on your left sound in your left ear, obstacles ahead trigger alerts.</p>
+        <h3 data-i18n="how_3_title">Hear Your World</h3>
+        <p data-i18n="how_3_desc">Receive instant spatial audio descriptions. Objects on your left sound in your left ear, obstacles ahead trigger alerts.</p>
       </div>
     </div>
   </section>
 
   <section id="features">
     <div class="section-header reveal">
-      <h2>Powerful <span class="gradient-text">Features</span></h2>
-      <p>Built from the ground up for accessibility, speed, and real-world reliability.</p>
+      <h2 data-i18n="feat_title">Powerful <span class="gradient-text">Features</span></h2>
+      <p data-i18n="feat_desc">Built from the ground up for accessibility, speed, and real-world reliability.</p>
     </div>
     <div class="features-grid">
       <div class="feature reveal">
         <div class="feature-icon cyan">🎧</div>
-        <h3>Spatial Audio Mapping</h3>
-        <p>3D positional sound places objects exactly where they are in your field of view. Left, right, near, far — your ears become your eyes.</p>
+        <h3 data-i18n="feat_1_title">Spatial Audio Mapping</h3>
+        <p data-i18n="feat_1_desc">3D positional sound places objects exactly where they are in your field of view. Left, right, near, far — your ears become your eyes.</p>
       </div>
       <div class="feature reveal">
         <div class="feature-icon purple">⚡</div>
-        <h3>Real-Time Processing</h3>
-        <p>Sub-100ms latency means you get instant feedback. Walk confidently knowing the AI is keeping pace with every step.</p>
+        <h3 data-i18n="feat_2_title">Real-Time Processing</h3>
+        <p data-i18n="feat_2_desc">Sub-100ms latency means you get instant feedback. Walk confidently knowing the AI is keeping pace with every step.</p>
       </div>
       <div class="feature reveal">
         <div class="feature-icon blue">🚧</div>
-        <h3>Obstacle Detection</h3>
-        <p>Automatically identifies hazards — curbs, poles, stairs, traffic — and alerts you with directional audio warnings.</p>
+        <h3 data-i18n="feat_3_title">Obstacle Detection</h3>
+        <p data-i18n="feat_3_desc">Automatically identifies hazards — curbs, poles, stairs, traffic — and alerts you with directional audio warnings.</p>
       </div>
       <div class="feature reveal">
         <div class="feature-icon pink">🗣️</div>
-        <h3>Smart Narration</h3>
-        <p>Natural language descriptions of scenes, text reading (OCR), face recognition, and color detection — all spoken aloud.</p>
+        <h3 data-i18n="feat_4_title">Smart Narration</h3>
+        <p data-i18n="feat_4_desc">Natural language descriptions of scenes, text reading (OCR), face recognition, and color detection — all spoken aloud.</p>
       </div>
       <div class="feature reveal">
         <div class="feature-icon cyan">🔋</div>
-        <h3>All-Day Battery</h3>
-        <p>Optimized to run efficiently on your phone. No extra devices to charge — just your everyday smartphone and earbuds.</p>
+        <h3 data-i18n="feat_5_title">All-Day Battery</h3>
+        <p data-i18n="feat_5_desc">Optimized to run efficiently on your phone. No extra devices to charge — just your everyday smartphone and earbuds.</p>
       </div>
       <div class="feature reveal">
         <div class="feature-icon purple">🔒</div>
-        <h3>Privacy First</h3>
-        <p>All processing happens on-device. Your visual data never leaves your phone. No cloud, no servers, no compromises.</p>
+        <h3 data-i18n="feat_6_title">Privacy First</h3>
+        <p data-i18n="feat_6_desc">All processing happens on-device. Your visual data never leaves your phone. No cloud, no servers, no compromises.</p>
       </div>
     </div>
   </section>
 
   <section class="demo" id="demo">
     <div class="section-header reveal">
-      <h2>Experience the <span class="gradient-text">Sound</span></h2>
-      <p>See how Blind AI translates the visual world into audio guidance.</p>
+      <h2 data-i18n="demo_title">Experience the <span class="gradient-text">Sound</span></h2>
+      <p data-i18n="demo_desc">See how Blind AI translates the visual world into audio guidance.</p>
     </div>
     <div class="demo-container reveal">
       <div class="demo-visual">
         <div class="sound-wave-container" id="soundWave"></div>
-        <div style="position:absolute; bottom:20px; left:50%; transform:translateX(-50%); color:var(--text-muted); font-size:0.85rem;">
+        <div style="position:absolute; bottom:20px; left:50%; transform:translateX(-50%); color:var(--text-muted); font-size:0.85rem;" data-i18n="demo_quote">
           🔊 "Sidewalk ahead. Curb on your right. Person approaching from left."
         </div>
       </div>
       <div class="demo-controls">
         <div class="demo-scenarios">
-          <button class="scenario-btn active" data-scene="street">🚶 Street Walking</button>
-          <button class="scenario-btn" data-scene="home">🏠 Indoor Navigation</button>
-          <button class="scenario-btn" data-scene="transit">🚌 Public Transit</button>
-          <button class="scenario-btn" data-scene="shopping">🛒 Shopping</button>
+          <button class="scenario-btn active" data-scene="street" data-i18n="demo_scene_street">🚶 Street Walking</button>
+          <button class="scenario-btn" data-scene="home" data-i18n="demo_scene_home">🏠 Indoor Navigation</button>
+          <button class="scenario-btn" data-scene="transit" data-i18n="demo_scene_transit">🚌 Public Transit</button>
+          <button class="scenario-btn" data-scene="shopping" data-i18n="demo_scene_shopping">🛒 Shopping</button>
         </div>
         <div class="demo-status">
           <span class="status-dot"></span>
@@ -951,40 +984,40 @@
 
   <section id="testimonials">
     <div class="section-header reveal">
-      <h2>Loved by the <span class="gradient-text">Community</span></h2>
-      <p>Real stories from real users who navigate the world differently now.</p>
+      <h2 data-i18n="test_title">Loved by the <span class="gradient-text">Community</span></h2>
+      <p data-i18n="test_desc">Real stories from real users who navigate the world differently now.</p>
     </div>
     <div class="testimonials-grid">
       <div class="testimonial reveal">
         <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-text">"Blind AI has given me back my independence. I can walk to the grocery store alone for the first time in five years. The spatial audio is incredibly intuitive — I just know where things are."</p>
+        <p class="testimonial-text" data-i18n="test_1_text">"Blind AI has given me back my independence. I can walk to the grocery store alone for the first time in five years. The spatial audio is incredibly intuitive — I just know where things are."</p>
         <div class="testimonial-author">
           <div class="testimonial-avatar">MK</div>
           <div>
             <div class="testimonial-name">Marcus K.</div>
-            <div class="testimonial-role">Low vision user, Chicago</div>
+            <div class="testimonial-role" data-i18n="test_1_role">Low vision user, Chicago</div>
           </div>
         </div>
       </div>
       <div class="testimonial reveal">
         <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-text">"As someone who lost their sight recently, this app was a lifeline. The obstacle detection caught a low-hanging branch I would have walked right into. It feels like having a guide dog in your pocket."</p>
+        <p class="testimonial-text" data-i18n="test_2_text">"As someone who lost their sight recently, this app was a lifeline. The obstacle detection caught a low-hanging branch I would have walked right into. It feels like having a guide dog in your pocket."</p>
         <div class="testimonial-author">
           <div class="testimonial-avatar">SR</div>
           <div>
             <div class="testimonial-name">Sarah R.</div>
-            <div class="testimonial-role">Blind user, London</div>
+            <div class="testimonial-role" data-i18n="test_2_role">Blind user, London</div>
           </div>
         </div>
       </div>
       <div class="testimonial reveal">
         <div class="testimonial-stars">★★★★★</div>
-        <p class="testimonial-text">"I use this with my students and the results are remarkable. The text-to-speech for reading signs and menus is fast and accurate. It's not just an app — it's a movement."</p>
+        <p class="testimonial-text" data-i18n="test_3_text">"I use this with my students and the results are remarkable. The text-to-speech for reading signs and menus is fast and accurate. It's not just an app — it's a movement."</p>
         <div class="testimonial-author">
           <div class="testimonial-avatar">JL</div>
           <div>
             <div class="testimonial-name">Dr. James L.</div>
-            <div class="testimonial-role">Orientation & Mobility Specialist</div>
+            <div class="testimonial-role" data-i18n="test_3_role">Orientation & Mobility Specialist</div>
           </div>
         </div>
       </div>
@@ -993,80 +1026,80 @@
 
   <section class="pricing" id="pricing">
     <div class="section-header reveal">
-      <h2>One Device. <span class="gradient-text">One Price.</span></h2>
-      <p>Own your independence outright — no subscriptions, no recurring fees. Just one device that changes how you experience the world.</p>
+      <h2 data-i18n="price_title">One Device. <span class="gradient-text">One Price.</span></h2>
+      <p data-i18n="price_desc">Own your independence outright — no subscriptions, no recurring fees. Just one device that changes how you experience the world.</p>
     </div>
     <div class="pricing-grid single">
       <div class="pricing-card popular reveal">
-        <div class="popular-badge">Blind AI Device</div>
+        <div class="popular-badge" data-i18n="price_badge">Blind AI Device</div>
         <h3>Blind AI</h3>
-        <div class="price">$1,500<span>one-time</span></div>
-        <p>Everything you need to navigate the world with confidence — yours to keep, forever.</p>
+        <div class="price">$1,500<span data-i18n="price_onetime">one-time</span></div>
+        <p data-i18n="price_tagline">Everything you need to navigate the world with confidence — yours to keep, forever.</p>
         <ul class="pricing-features">
-          <li><span class="check">✓</span> Spatial audio mapping</li>
-          <li><span class="check">✓</span> Real-time obstacle detection</li>
-          <li><span class="check">✓</span> Smart scene narration & OCR</li>
-          <li><span class="check">✓</span> Face & color recognition</li>
-          <li><span class="check">✓</span> All-day battery life</li>
-          <li><span class="check">✓</span> On-device privacy — no cloud</li>
-          <li><span class="check">✓</span> Free lifetime software updates</li>
-          <li><span class="check">✓</span> 1-year warranty & support</li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_1">Spatial audio mapping</span></li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_2">Real-time obstacle detection</span></li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_3">Smart scene narration & OCR</span></li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_4">Face & color recognition</span></li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_5">All-day battery life</span></li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_6">On-device privacy — no cloud</span></li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_7">Free lifetime software updates</span></li>
+          <li><span class="check">✓</span> <span data-i18n="price_feat_8">1-year warranty & support</span></li>
         </ul>
-        <button class="btn-primary" style="width:100%;">Order Now</button>
+        <button class="btn-primary" style="width:100%;" data-i18n="price_btn">Order Now</button>
       </div>
     </div>
 
     <div class="early-bird reveal" id="early-access">
-      <div class="early-bird-badge">Limited Time</div>
+      <div class="early-bird-badge" data-i18n="early_badge">Limited Time</div>
       <div class="early-bird-content">
-        <h3>Early Bird Offer</h3>
-        <p>Be one of the first 10 users and save <strong>$300</strong> on your Blind AI device.</p>
+        <h3 data-i18n="early_title">Early Bird Offer</h3>
+        <p data-i18n="early_desc">Be one of the first 10 users and save <strong>$300</strong> on your Blind AI device.</p>
         <div class="early-bird-price">
           <span class="old-price">$1,500</span>
           <span class="new-price">$1,200</span>
         </div>
-        <div class="early-bird-spots">Only a few spots left out of 10</div>
-        <button class="btn-primary">Claim Your Spot</button>
+        <div class="early-bird-spots" data-i18n="early_spots">Only a few spots left out of 10</div>
+        <button class="btn-primary" data-i18n="early_btn">Claim Your Spot</button>
       </div>
     </div>
   </section>
 
   <section class="cta" id="contact">
-    <h2 class="reveal">Ready to Hear Your World?</h2>
-    <p class="reveal">Join thousands who are already navigating with confidence.</p>
+    <h2 class="reveal" data-i18n="cta_title">Ready to Hear Your World?</h2>
+    <p class="reveal" data-i18n="cta_desc">Join thousands who are already navigating with confidence.</p>
     <div class="hero-buttons reveal">
-      <button class="btn-secondary" onclick="openContactModal()">Contact Our Team</button>
+      <button class="btn-secondary" data-i18n="cta_btn" onclick="openContactModal()">Contact Our Team</button>
     </div>
   </section>
 
   <footer>
     <div class="footer-links">
-      <a href="#" onclick="openPrivacyModal(); return false;">Privacy</a>
-      <a href="#pricing">Accessibility</a>
-      <a href="#" onclick="openContactModal(); return false;">Support</a>
+      <a href="#" data-i18n="footer_privacy" onclick="openPrivacyModal(); return false;">Privacy</a>
+      <a href="javascript:void(0)" data-i18n="footer_accessibility" onclick="scrollToSection('pricing')">Accessibility</a>
+      <a href="#" data-i18n="footer_support" onclick="openContactModal(); return false;">Support</a>
     </div>
-    <p>© 2026 Blind AI, Inc. Built with care for the visually impaired community.</p>
+    <p data-i18n="footer_copyright">© 2026 Blind AI, Inc. Built with care for the visually impaired community.</p>
   </footer>
 
   <div class="modal-overlay" id="contactModalOverlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>Contact Our Team</h3>
+        <h3 data-i18n="contact_title">Contact Our Team</h3>
         <button class="modal-close" onclick="closeContactModal()" aria-label="Close">✕</button>
       </div>
-      <label class="modal-label" for="contactEmail">Your email</label>
+      <label class="modal-label" for="contactEmail" data-i18n="contact_email_label">Your email</label>
       <input class="modal-input" type="email" id="contactEmail" placeholder="you@example.com" required>
-      <label class="modal-label" for="contactMessage">How can we help you?</label>
-      <textarea class="modal-textarea" id="contactMessage" placeholder="We welcome your thoughts"></textarea>
-      <p class="modal-hint">You can also upload or paste images for feedback.</p>
+      <label class="modal-label" for="contactMessage" data-i18n="contact_msg_label">How can we help you?</label>
+      <textarea class="modal-textarea" id="contactMessage" data-i18n-placeholder="contact_msg_placeholder" placeholder="We welcome your thoughts"></textarea>
+      <p class="modal-hint" data-i18n="contact_hint">You can also upload or paste images for feedback.</p>
       <label class="modal-upload" for="contactImageInput">
         <span>+</span>
         <input type="file" id="contactImageInput" accept="image/*" style="display:none;">
       </label>
       <p class="modal-status" id="contactStatus"></p>
       <div class="modal-actions">
-        <button class="btn-secondary" onclick="closeContactModal()">Cancel</button>
-        <button class="btn-primary" id="contactSubmitBtn" onclick="submitContactModal()">Submit</button>
+        <button class="btn-secondary" data-i18n="contact_cancel" onclick="closeContactModal()">Cancel</button>
+        <button class="btn-primary" id="contactSubmitBtn" data-i18n="contact_submit" onclick="submitContactModal()">Submit</button>
       </div>
     </div>
   </div>
@@ -1074,40 +1107,281 @@
   <div class="modal-overlay" id="privacyModalOverlay">
     <div class="modal-card" style="max-width:640px; max-height:80vh; display:flex; flex-direction:column;">
       <div class="modal-header">
-        <h3>Privacy Policy</h3>
+        <h3 data-i18n="privacy_title">Privacy Policy</h3>
         <button class="modal-close" onclick="closePrivacyModal()" aria-label="Close">✕</button>
       </div>
       <div style="overflow-y:auto; padding-right:0.5rem; color:var(--text-secondary); font-size:0.92rem; line-height:1.7;">
-        <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1.25rem;">Last updated: July 2026</p>
+        <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1.25rem;" data-i18n="privacy_updated">Last updated: July 2026</p>
 
-        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">On-Device Processing</h4>
-        <p style="margin-bottom:1.25rem;">Blind AI performs all camera, image, and audio processing directly on your device. Visual data captured by your camera is never uploaded to our servers or any third party, and is not stored beyond the current session unless you explicitly save a clip.</p>
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;" data-i18n="privacy_h1">On-Device Processing</h4>
+        <p style="margin-bottom:1.25rem;" data-i18n="privacy_p1">Blind AI performs all camera, image, and audio processing directly on your device. Visual data captured by your camera is never uploaded to our servers or any third party, and is not stored beyond the current session unless you explicitly save a clip.</p>
 
-        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Information We Collect</h4>
-        <p style="margin-bottom:1.25rem;">We collect only what's needed to operate your account and device: your name, email address, shipping address, and device diagnostics (crash logs, battery, firmware version). We do not collect or store the contents of your camera feed.</p>
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;" data-i18n="privacy_h2">Information We Collect</h4>
+        <p style="margin-bottom:1.25rem;" data-i18n="privacy_p2">We collect only what's needed to operate your account and device: your name, email address, shipping address, and device diagnostics (crash logs, battery, firmware version). We do not collect or store the contents of your camera feed.</p>
 
-        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Payments &amp; Card Data</h4>
-        <p style="margin-bottom:1.25rem;">Orders are processed through a PCI-DSS compliant payment processor. Blind AI never sees or stores your full credit card number, CVV, or expiry date — this data goes straight from your browser to the payment processor over an encrypted connection and is tokenized before it ever reaches us.</p>
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;" data-i18n="privacy_h3">Payments &amp; Card Data</h4>
+        <p style="margin-bottom:1.25rem;" data-i18n="privacy_p3">Orders are processed through a PCI-DSS compliant payment processor. Blind AI never sees or stores your full credit card number, CVV, or expiry date — this data goes straight from your browser to the payment processor over an encrypted connection and is tokenized before it ever reaches us.</p>
 
-        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Encryption &amp; Transport Security</h4>
-        <p style="margin-bottom:1.25rem;">All data transmitted between your browser or device and our servers is encrypted in transit using TLS/SSL. Sensitive fields (payment tokens, account credentials) are also encrypted at rest.</p>
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;" data-i18n="privacy_h4">Encryption &amp; Transport Security</h4>
+        <p style="margin-bottom:1.25rem;" data-i18n="privacy_p4">All data transmitted between your browser or device and our servers is encrypted in transit using TLS/SSL. Sensitive fields (payment tokens, account credentials) are also encrypted at rest.</p>
 
-        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Application Security</h4>
-        <p style="margin-bottom:1.25rem;">We follow secure development practices to protect against common web vulnerabilities, including input validation and parameterized queries to prevent injection attacks, regular dependency and security audits, and access controls limiting who can view customer data internally.</p>
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;" data-i18n="privacy_h5">Application Security</h4>
+        <p style="margin-bottom:1.25rem;" data-i18n="privacy_p5">We follow secure development practices to protect against common web vulnerabilities, including input validation and parameterized queries to prevent injection attacks, regular dependency and security audits, and access controls limiting who can view customer data internally.</p>
 
-        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Cookies</h4>
-        <p style="margin-bottom:1.25rem;">We use minimal, functional cookies to keep you logged in and remember preferences. We do not use third-party advertising trackers.</p>
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;" data-i18n="privacy_h6">Cookies</h4>
+        <p style="margin-bottom:1.25rem;" data-i18n="privacy_p6">We use minimal, functional cookies to keep you logged in and remember preferences. We do not use third-party advertising trackers.</p>
 
-        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;">Your Rights</h4>
-        <p style="margin-bottom:0.5rem;">You can request a copy of your data, ask us to correct it, or request deletion of your account and associated data at any time by contacting our support team.</p>
+        <h4 style="color:var(--text-primary); font-family:'Space Grotesk', sans-serif; margin-bottom:0.5rem;" data-i18n="privacy_h7">Your Rights</h4>
+        <p style="margin-bottom:0.5rem;" data-i18n="privacy_p7">You can request a copy of your data, ask us to correct it, or request deletion of your account and associated data at any time by contacting our support team.</p>
       </div>
       <div class="modal-actions" style="margin-top:1.25rem;">
-        <button class="btn-primary" onclick="closePrivacyModal()">Got It</button>
+        <button class="btn-primary" data-i18n="privacy_gotit" onclick="closePrivacyModal()">Got It</button>
       </div>
     </div>
   </div>
 
   <script>
+    const translations = {
+      en: {
+        nav_how: "How It Works", nav_features: "Features", nav_demo: "Demo", nav_pricing: "Pricing", nav_contact: "Contact", nav_cta: "Get Early Access",
+        hero_badge: "Now in Beta — Join 2,000+ early users",
+        hero_title: 'See the World<br><span class="gradient-text">Through Sound</span>',
+        hero_desc: "Blind AI transforms your surroundings into rich, spatial audio. Using just your camera and earbuds, navigate the world with confidence — no special hardware required.",
+        hero_btn_trial: "Start Trial", hero_btn_demo: "Watch Demo",
+        how_title: 'How It <span class="gradient-text">Works</span>',
+        how_desc: "Three simple steps to a new way of experiencing the world around you.",
+        how_1_title: "Connect Your Earbuds", how_1_desc: "Pair any Bluetooth earbuds or AirPods with your smartphone. No proprietary hardware needed — use what you already own.",
+        how_2_title: "Point the Camera", how_2_desc: "Hold your phone in front of you or use a chest-mounted holder. Our AI sees what you see in real time.",
+        how_3_title: "Hear Your World", how_3_desc: "Receive instant spatial audio descriptions. Objects on your left sound in your left ear, obstacles ahead trigger alerts.",
+        feat_title: 'Powerful <span class="gradient-text">Features</span>',
+        feat_desc: "Built from the ground up for accessibility, speed, and real-world reliability.",
+        feat_1_title: "Spatial Audio Mapping", feat_1_desc: "3D positional sound places objects exactly where they are in your field of view. Left, right, near, far — your ears become your eyes.",
+        feat_2_title: "Real-Time Processing", feat_2_desc: "Sub-100ms latency means you get instant feedback. Walk confidently knowing the AI is keeping pace with every step.",
+        feat_3_title: "Obstacle Detection", feat_3_desc: "Automatically identifies hazards — curbs, poles, stairs, traffic — and alerts you with directional audio warnings.",
+        feat_4_title: "Smart Narration", feat_4_desc: "Natural language descriptions of scenes, text reading (OCR), face recognition, and color detection — all spoken aloud.",
+        feat_5_title: "All-Day Battery", feat_5_desc: "Optimized to run efficiently on your phone. No extra devices to charge — just your everyday smartphone and earbuds.",
+        feat_6_title: "Privacy First", feat_6_desc: "All processing happens on-device. Your visual data never leaves your phone. No cloud, no servers, no compromises.",
+        demo_title: 'Experience the <span class="gradient-text">Sound</span>',
+        demo_desc: "See how Blind AI translates the visual world into audio guidance.",
+        demo_quote: '🔊 "Sidewalk ahead. Curb on your right. Person approaching from left."',
+        demo_scene_street: "🚶 Street Walking", demo_scene_home: "🏠 Indoor Navigation", demo_scene_transit: "🚌 Public Transit", demo_scene_shopping: "🛒 Shopping",
+        test_title: 'Loved by the <span class="gradient-text">Community</span>',
+        test_desc: "Real stories from real users who navigate the world differently now.",
+        test_1_text: '"Blind AI has given me back my independence. I can walk to the grocery store alone for the first time in five years. The spatial audio is incredibly intuitive — I just know where things are."',
+        test_1_role: "Low vision user, Chicago",
+        test_2_text: '"As someone who lost their sight recently, this app was a lifeline. The obstacle detection caught a low-hanging branch I would have walked right into. It feels like having a guide dog in your pocket."',
+        test_2_role: "Blind user, London",
+        test_3_text: '"I use this with my students and the results are remarkable. The text-to-speech for reading signs and menus is fast and accurate. It\'s not just an app — it\'s a movement."',
+        test_3_role: "Orientation & Mobility Specialist",
+        price_title: 'One Device. <span class="gradient-text">One Price.</span>',
+        price_desc: "Own your independence outright — no subscriptions, no recurring fees. Just one device that changes how you experience the world.",
+        price_badge: "Blind AI Device", price_onetime: "one-time",
+        price_tagline: "Everything you need to navigate the world with confidence — yours to keep, forever.",
+        price_feat_1: "Spatial audio mapping", price_feat_2: "Real-time obstacle detection", price_feat_3: "Smart scene narration & OCR",
+        price_feat_4: "Face & color recognition", price_feat_5: "All-day battery life", price_feat_6: "On-device privacy — no cloud",
+        price_feat_7: "Free lifetime software updates", price_feat_8: "1-year warranty & support", price_btn: "Order Now",
+        early_badge: "Limited Time", early_title: "Early Bird Offer",
+        early_desc: 'Be one of the first 10 users and save <strong>$300</strong> on your Blind AI device.',
+        early_spots: "Only a few spots left out of 10", early_btn: "Claim Your Spot",
+        cta_title: "Ready to Hear Your World?", cta_desc: "Join thousands who are already navigating with confidence.", cta_btn: "Contact Our Team",
+        footer_privacy: "Privacy", footer_accessibility: "Accessibility", footer_support: "Support",
+        footer_copyright: "© 2026 Blind AI, Inc. Built with care for the visually impaired community.",
+        contact_title: "Contact Our Team", contact_email_label: "Your email", contact_msg_label: "How can we help you?",
+        contact_msg_placeholder: "We welcome your thoughts", contact_hint: "You can also upload or paste images for feedback.",
+        contact_cancel: "Cancel", contact_submit: "Submit",
+        contact_err_fill: "Please fill in your email and message.", contact_sending: "Sending...",
+        contact_success: "Thanks! Your message has been sent.", contact_err_generic: "Something went wrong. Please try again.",
+        contact_err_network: "Network error. Please try again.",
+        privacy_title: "Privacy Policy", privacy_updated: "Last updated: July 2026",
+        privacy_h1: "On-Device Processing",
+        privacy_p1: "Blind AI performs all camera, image, and audio processing directly on your device. Visual data captured by your camera is never uploaded to our servers or any third party, and is not stored beyond the current session unless you explicitly save a clip.",
+        privacy_h2: "Information We Collect",
+        privacy_p2: "We collect only what's needed to operate your account and device: your name, email address, shipping address, and device diagnostics (crash logs, battery, firmware version). We do not collect or store the contents of your camera feed.",
+        privacy_h3: "Payments &amp; Card Data",
+        privacy_p3: "Orders are processed through a PCI-DSS compliant payment processor. Blind AI never sees or stores your full credit card number, CVV, or expiry date — this data goes straight from your browser to the payment processor over an encrypted connection and is tokenized before it ever reaches us.",
+        privacy_h4: "Encryption &amp; Transport Security",
+        privacy_p4: "All data transmitted between your browser or device and our servers is encrypted in transit using TLS/SSL. Sensitive fields (payment tokens, account credentials) are also encrypted at rest.",
+        privacy_h5: "Application Security",
+        privacy_p5: "We follow secure development practices to protect against common web vulnerabilities, including input validation and parameterized queries to prevent injection attacks, regular dependency and security audits, and access controls limiting who can view customer data internally.",
+        privacy_h6: "Cookies",
+        privacy_p6: "We use minimal, functional cookies to keep you logged in and remember preferences. We do not use third-party advertising trackers.",
+        privacy_h7: "Your Rights",
+        privacy_p7: "You can request a copy of your data, ask us to correct it, or request deletion of your account and associated data at any time by contacting our support team.",
+        privacy_gotit: "Got It"
+      },
+      ru: {
+        nav_how: "Как это работает", nav_features: "Возможности", nav_demo: "Демо", nav_pricing: "Цена", nav_contact: "Контакты", nav_cta: "Ранний доступ",
+        hero_badge: "Сейчас в бета-версии — уже 2 000+ первых пользователей",
+        hero_title: 'Видеть мир<br><span class="gradient-text">через звук</span>',
+        hero_desc: "Blind AI превращает окружающий мир в насыщенный пространственный звук. Используя только камеру и наушники, уверенно перемещайтесь по миру — без специального оборудования.",
+        hero_btn_trial: "Начать пробный период", hero_btn_demo: "Смотреть демо",
+        how_title: 'Как это <span class="gradient-text">работает</span>',
+        how_desc: "Три простых шага к новому способу восприятия окружающего мира.",
+        how_1_title: "Подключите наушники", how_1_desc: "Подключите любые Bluetooth-наушники или AirPods к смартфону. Никакого фирменного оборудования — используйте то, что у вас уже есть.",
+        how_2_title: "Направьте камеру", how_2_desc: "Держите телефон перед собой или используйте нагрудное крепление. Наш ИИ видит то же, что и вы, в реальном времени.",
+        how_3_title: "Услышьте свой мир", how_3_desc: "Получайте мгновенные пространственные звуковые описания. Объекты слева звучат в левом ухе, препятствия впереди вызывают предупреждения.",
+        feat_title: 'Мощные <span class="gradient-text">возможности</span>',
+        feat_desc: "Создано с нуля для доступности, скорости и надёжности в реальных условиях.",
+        feat_1_title: "Пространственное аудио", feat_1_desc: "3D-позиционный звук размещает объекты именно там, где они находятся в поле зрения. Слева, справа, ближе, дальше — ваши уши становятся вашими глазами.",
+        feat_2_title: "Обработка в реальном времени", feat_2_desc: "Задержка менее 100 мс означает мгновенную обратную связь. Идите уверенно, зная, что ИИ успевает за каждым шагом.",
+        feat_3_title: "Обнаружение препятствий", feat_3_desc: "Автоматически распознаёт опасности — бордюры, столбы, лестницы, движение — и предупреждает вас направленными звуковыми сигналами.",
+        feat_4_title: "Умное озвучивание", feat_4_desc: "Описания сцен на естественном языке, чтение текста (OCR), распознавание лиц и определение цвета — всё озвучивается вслух.",
+        feat_5_title: "Заряд на весь день", feat_5_desc: "Оптимизировано для эффективной работы на вашем телефоне. Никаких дополнительных устройств для зарядки — только ваш смартфон и наушники.",
+        feat_6_title: "Приватность прежде всего", feat_6_desc: "Вся обработка происходит на устройстве. Ваши визуальные данные никогда не покидают телефон. Никакого облака, никаких серверов, никаких компромиссов.",
+        demo_title: 'Испытайте <span class="gradient-text">звук</span>',
+        demo_desc: "Посмотрите, как Blind AI превращает визуальный мир в звуковые подсказки.",
+        demo_quote: '🔊 «Впереди тротуар. Бордюр справа. Человек приближается слева.»',
+        demo_scene_street: "🚶 Прогулка по улице", demo_scene_home: "🏠 Навигация в помещении", demo_scene_transit: "🚌 Общественный транспорт", demo_scene_shopping: "🛒 Покупки",
+        test_title: 'Любим <span class="gradient-text">сообществом</span>',
+        test_desc: "Реальные истории реальных людей, которые теперь по-новому ориентируются в мире.",
+        test_1_text: '«Blind AI вернул мне независимость. Впервые за пять лет я могу один дойти до магазина. Пространственный звук невероятно интуитивен — я просто знаю, где что находится.»',
+        test_1_role: "Слабовидящий пользователь, Чикаго",
+        test_2_text: '«Для человека, недавно потерявшего зрение, это приложение стало спасением. Обнаружение препятствий уберегло меня от низко висящей ветки. Это как иметь собаку-поводыря в кармане.»',
+        test_2_role: "Незрячий пользователь, Лондон",
+        test_3_text: '«Я использую это со своими студентами, и результаты впечатляют. Озвучивание вывесок и меню быстрое и точное. Это не просто приложение — это движение.»',
+        test_3_role: "Специалист по ориентации и мобильности",
+        price_title: 'Одно устройство. <span class="gradient-text">Одна цена.</span>',
+        price_desc: "Обретите независимость полностью — без подписок и повторяющихся платежей. Всего одно устройство, которое меняет то, как вы воспринимаете мир.",
+        price_badge: "Устройство Blind AI", price_onetime: "разовый платёж",
+        price_tagline: "Всё необходимое, чтобы уверенно ориентироваться в мире — ваше навсегда.",
+        price_feat_1: "Пространственное аудио", price_feat_2: "Обнаружение препятствий в реальном времени", price_feat_3: "Умное озвучивание сцен и OCR",
+        price_feat_4: "Распознавание лиц и цвета", price_feat_5: "Заряд на весь день", price_feat_6: "Приватность на устройстве — без облака",
+        price_feat_7: "Бесплатные обновления ПО навсегда", price_feat_8: "1 год гарантии и поддержки", price_btn: "Заказать сейчас",
+        early_badge: "Ограниченное предложение", early_title: "Предложение для первых пользователей",
+        early_desc: 'Станьте одним из первых 10 пользователей и сэкономьте <strong>$300</strong> на устройстве Blind AI.',
+        early_spots: "Осталось всего несколько мест из 10", early_btn: "Занять место",
+        cta_title: "Готовы услышать свой мир?", cta_desc: "Присоединяйтесь к тысячам, кто уже уверенно ориентируется в пространстве.", cta_btn: "Связаться с нами",
+        footer_privacy: "Конфиденциальность", footer_accessibility: "Доступность", footer_support: "Поддержка",
+        footer_copyright: "© 2026 Blind AI, Inc. Создано с заботой о сообществе людей с нарушением зрения.",
+        contact_title: "Связаться с нами", contact_email_label: "Ваш email", contact_msg_label: "Чем мы можем помочь?",
+        contact_msg_placeholder: "Будем рады вашим мыслям", contact_hint: "Вы также можете загрузить или вставить изображения для обратной связи.",
+        contact_cancel: "Отмена", contact_submit: "Отправить",
+        contact_err_fill: "Пожалуйста, заполните email и сообщение.", contact_sending: "Отправка...",
+        contact_success: "Спасибо! Ваше сообщение отправлено.", contact_err_generic: "Что-то пошло не так. Попробуйте снова.",
+        contact_err_network: "Ошибка сети. Попробуйте снова.",
+        privacy_title: "Политика конфиденциальности", privacy_updated: "Последнее обновление: июль 2026",
+        privacy_h1: "Обработка на устройстве",
+        privacy_p1: "Blind AI выполняет всю обработку камеры, изображений и звука непосредственно на вашем устройстве. Визуальные данные, снятые камерой, никогда не загружаются на наши серверы или третьим лицам и не хранятся после окончания сеанса, если вы явно не сохраните клип.",
+        privacy_h2: "Какие данные мы собираем",
+        privacy_p2: "Мы собираем только то, что необходимо для работы вашего аккаунта и устройства: имя, email, адрес доставки и диагностику устройства (журналы сбоев, заряд батареи, версию прошивки). Мы не собираем и не храним содержимое видео с камеры.",
+        privacy_h3: "Платежи и данные карт",
+        privacy_p3: "Заказы обрабатываются через платёжного оператора, соответствующего стандарту PCI-DSS. Blind AI никогда не видит и не хранит полный номер вашей карты, CVV или срок действия — эти данные передаются напрямую от браузера к платёжному оператору по зашифрованному соединению и токенизируются до того, как попадут к нам.",
+        privacy_h4: "Шифрование и безопасность передачи",
+        privacy_p4: "Все данные, передаваемые между вашим браузером или устройством и нашими серверами, шифруются при передаче с использованием TLS/SSL. Конфиденциальные поля (платёжные токены, учётные данные) также шифруются при хранении.",
+        privacy_h5: "Безопасность приложения",
+        privacy_p5: "Мы следуем практикам безопасной разработки для защиты от распространённых веб-уязвимостей, включая проверку входных данных и параметризованные запросы для предотвращения инъекций, регулярные аудиты зависимостей и безопасности, а также контроль доступа к данным клиентов внутри компании.",
+        privacy_h6: "Файлы cookie",
+        privacy_p6: "Мы используем минимальные функциональные cookie для поддержания сессии и запоминания настроек. Мы не используем сторонние рекламные трекеры.",
+        privacy_h7: "Ваши права",
+        privacy_p7: "Вы можете в любой момент запросить копию своих данных, попросить их исправить или удалить свой аккаунт и связанные с ним данные, обратившись в нашу службу поддержки.",
+        privacy_gotit: "Понятно"
+      },
+      az: {
+        nav_how: "Necə İşləyir", nav_features: "Xüsusiyyətlər", nav_demo: "Demo", nav_pricing: "Qiymət", nav_contact: "Əlaqə", nav_cta: "Erkən Giriş Əldə Edin",
+        hero_badge: "İndi Beta versiyada — 2 000+ ilkin istifadəçiyə qoşulun",
+        hero_title: 'Dünyanı<br><span class="gradient-text">Səs ilə Görün</span>',
+        hero_desc: "Blind AI ətrafınızı zəngin, məkani səsə çevirir. Sadəcə kameranız və qulaqcıqlarınızla dünyada özünüzə güvənərək hərəkət edin — heç bir xüsusi avadanlıq tələb olunmur.",
+        hero_btn_trial: "Sınaqa Başla", hero_btn_demo: "Demoya Bax",
+        how_title: 'Necə <span class="gradient-text">İşləyir</span>',
+        how_desc: "Ətrafınızdakı dünyanı yeni şəkildə hiss etmək üçün üç sadə addım.",
+        how_1_title: "Qulaqcıqlarınızı Qoşun", how_1_desc: "İstənilən Bluetooth qulaqcığı və ya AirPods-u smartfonunuza qoşun. Xüsusi avadanlıq lazım deyil — artıq sahib olduğunuzdan istifadə edin.",
+        how_2_title: "Kameranı Yönləndirin", how_2_desc: "Telefonu qarşınızda tutun və ya sinə üzərində bərkidici istifadə edin. Süni intellektimiz real vaxtda sizin gördüyünüzü görür.",
+        how_3_title: "Dünyanızı Eşidin", how_3_desc: "Ani məkani səs təsvirləri alın. Solunuzdakı obyektlər sol qulağınızda səslənir, qabaqdakı maneələr xəbərdarlıq siqnalı verir.",
+        feat_title: 'Güclü <span class="gradient-text">Xüsusiyyətlər</span>',
+        feat_desc: "Əlçatanlıq, sürət və real dünya etibarlılığı üçün sıfırdan hazırlanıb.",
+        feat_1_title: "Məkani Səs Xəritələməsi", feat_1_desc: "3D mövqe səsi obyektləri görmə sahənizdə olduqları yerdə yerləşdirir. Sol, sağ, yaxın, uzaq — qulaqlarınız gözlərinizə çevrilir.",
+        feat_2_title: "Real Vaxt Emalı", feat_2_desc: "100ms-dən az gecikmə ani rəy deməkdir. Süni intellektin hər addımınıza ayaqlaşdığını bilərək inamla yeriyin.",
+        feat_3_title: "Maneə Aşkarlanması", feat_3_desc: "Təhlükələri — bordürlər, dirəklər, pilləkənlər, nəqliyyat — avtomatik müəyyən edir və istiqamətli səs xəbərdarlıqları ilə sizi xəbərdar edir.",
+        feat_4_title: "Ağıllı Səsləndirmə", feat_4_desc: "Səhnələrin təbii dildə təsviri, mətn oxunması (OCR), üz tanınması və rəng aşkarlanması — hamısı səslə deyilir.",
+        feat_5_title: "Bütün Gün Batareya", feat_5_desc: "Telefonunuzda səmərəli işləmək üçün optimallaşdırılıb. Doldurulmalı əlavə cihaz yoxdur — sadəcə hər gün istifadə etdiyiniz smartfon və qulaqcıqlar.",
+        feat_6_title: "Əvvəlcə Məxfilik", feat_6_desc: "Bütün emal cihazda baş verir. Vizual məlumatlarınız heç vaxt telefonunuzu tərk etmir. Bulud yoxdur, server yoxdur, güzəşt yoxdur.",
+        demo_title: '<span class="gradient-text">Səsi</span> Yaşayın',
+        demo_desc: "Blind AI-nin vizual dünyanı səs istiqamətinə necə çevirdiyinə baxın.",
+        demo_quote: '🔊 "Qabaqda səki. Sağda bordür. Soldan yaxınlaşan insan."',
+        demo_scene_street: "🚶 Küçədə Gəzinti", demo_scene_home: "🏠 Daxili Naviqasiya", demo_scene_transit: "🚌 İctimai Nəqliyyat", demo_scene_shopping: "🛒 Alış-veriş",
+        test_title: '<span class="gradient-text">Cəmiyyət</span> Tərəfindən Sevilir',
+        test_desc: "Dünyanı artıq fərqli şəkildə gəzən real istifadəçilərin real hekayələri.",
+        test_1_text: '"Blind AI mənə müstəqilliyimi qaytardı. Beş ildə ilk dəfə tək ərzaq mağazasına gedə bilirəm. Məkani səs inanılmaz intuitivdir — sadəcə əşyaların harada olduğunu bilirəm."',
+        test_1_role: "Zəif görən istifadəçi, Çikaqo",
+        test_2_text: '"Yaxınlarda görmə qabiliyyətini itirən biri kimi, bu tətbiq həyat xətti oldu. Maneə aşkarlanması az qala çırpacağım aşağı sallanan budağı tutdu. Cibinizdə bələdçi it olması kimidir."',
+        test_2_role: "Kor istifadəçi, London",
+        test_3_text: '"Bunu tələbələrimlə istifadə edirəm və nəticələr heyrətamizdir. Lövhə və menyuları oxumaq üçün mətndən nitqə çevrilmə sürətli və dəqiqdir. Bu sadəcə tətbiq deyil — bu bir hərəkatdır."',
+        test_3_role: "İstiqamətləndirmə və Mobillik Mütəxəssisi",
+        price_title: 'Bir Cihaz. <span class="gradient-text">Bir Qiymət.</span>',
+        price_desc: "Müstəqilliyinizə tam sahib olun — abunəlik yoxdur, təkrar ödəniş yoxdur. Dünyanı necə yaşadığınızı dəyişən sadəcə bir cihaz.",
+        price_badge: "Blind AI Cihazı", price_onetime: "birdəfəlik",
+        price_tagline: "Dünyada özünüzə güvənərək hərəkət etmək üçün lazım olan hər şey — birdəfəlik alın, əbədi sizindir.",
+        price_feat_1: "Məkani səs xəritələməsi", price_feat_2: "Real vaxtda maneə aşkarlanması", price_feat_3: "Ağıllı səhnə səsləndirməsi və OCR",
+        price_feat_4: "Üz və rəng tanınması", price_feat_5: "Bütün gün batareya ömrü", price_feat_6: "Cihazda məxfilik — bulud yoxdur",
+        price_feat_7: "Pulsuz, ömürlük proqram yeniləmələri", price_feat_8: "1 illik zəmanət və dəstək", price_btn: "İndi Sifariş Ver",
+        early_badge: "Məhdud Müddət", early_title: "Erkən Quş Təklifi",
+        early_desc: 'İlk 10 istifadəçidən biri olun və Blind AI cihazınıza <strong>$300</strong> qənaət edin.',
+        early_spots: "10-dan cəmi bir neçə yer qalıb", early_btn: "Yerinizi Tutun",
+        cta_title: "Dünyanızı Eşitməyə Hazırsınız?", cta_desc: "Artıq inamla naviqasiya edən minlərlə insana qoşulun.", cta_btn: "Komandamızla Əlaqə",
+        footer_privacy: "Məxfilik", footer_accessibility: "Əlçatanlıq", footer_support: "Dəstək",
+        footer_copyright: "© 2026 Blind AI, Inc. Görmə əngəlli cəmiyyəti üçün qayğı ilə hazırlanıb.",
+        contact_title: "Komandamızla Əlaqə", contact_email_label: "E-poçtunuz", contact_msg_label: "Sizə necə kömək edə bilərik?",
+        contact_msg_placeholder: "Fikirlərinizi məmnuniyyətlə qarşılayırıq", contact_hint: "Rəy üçün şəkil yükləyə və ya yapışdıra bilərsiniz.",
+        contact_cancel: "Ləğv et", contact_submit: "Göndər",
+        contact_err_fill: "Zəhmət olmasa e-poçt və mesajınızı doldurun.", contact_sending: "Göndərilir...",
+        contact_success: "Təşəkkürlər! Mesajınız göndərildi.", contact_err_generic: "Nəsə səhv getdi. Yenidən cəhd edin.",
+        contact_err_network: "Şəbəkə xətası. Yenidən cəhd edin.",
+        privacy_title: "Məxfilik Siyasəti", privacy_updated: "Son yeniləmə: iyul 2026",
+        privacy_h1: "Cihazda Emal",
+        privacy_p1: "Blind AI bütün kamera, şəkil və audio emalını birbaşa cihazınızda həyata keçirir. Kameranız tərəfindən çəkilən vizual məlumatlar heç vaxt serverlərimizə və ya hər hansı üçüncü tərəfə yüklənmir və açıq şəkildə klip saxlamadığınız təqdirdə cari sessiyadan sonra saxlanılmır.",
+        privacy_h2: "Topladığımız Məlumatlar",
+        privacy_p2: "Yalnız hesabınızı və cihazınızı işlətmək üçün lazım olanları toplayırıq: adınız, e-poçt ünvanınız, çatdırılma ünvanınız və cihaz diaqnostikası (nasazlıq qeydləri, batareya, proqram versiyası). Kamera görüntülərinizin məzmununu toplamırıq və ya saxlamırıq.",
+        privacy_h3: "Ödənişlər və Kart Məlumatları",
+        privacy_p3: "Sifarişlər PCI-DSS uyğun ödəniş prosessoru vasitəsilə emal olunur. Blind AI heç vaxt tam kart nömrənizi, CVV-ni və ya bitmə tarixini görmür və ya saxlamır — bu məlumat brauzerinizdən birbaşa şifrələnmiş bağlantı üzərindən ödəniş prosessoruna gedir və bizə çatmazdan əvvəl tokenləşdirilir.",
+        privacy_h4: "Şifrələmə və Ötürmə Təhlükəsizliyi",
+        privacy_p4: "Brauzeriniz və ya cihazınız ilə serverlərimiz arasında ötürülən bütün məlumatlar TLS/SSL istifadə edərək şifrələnir. Həssas sahələr (ödəniş tokenləri, hesab məlumatları) saxlanılarkən də şifrələnir.",
+        privacy_h5: "Tətbiq Təhlükəsizliyi",
+        privacy_p5: "Ümumi veb zəifliklərindən qorunmaq üçün təhlükəsiz inkişaf təcrübələrinə əməl edirik, o cümlədən inyeksiya hücumlarının qarşısını almaq üçün giriş yoxlaması və parametrləşdirilmiş sorğular, mütəmadi asılılıq və təhlükəsizlik auditləri, və müştəri məlumatlarına daxili girişi məhdudlaşdıran nəzarətlər.",
+        privacy_h6: "Kukilər",
+        privacy_p6: "Sizi daxil olmuş saxlamaq və seçimlərinizi xatırlamaq üçün minimal, funksional kukilərdən istifadə edirik. Üçüncü tərəf reklam izləyicilərindən istifadə etmirik.",
+        privacy_h7: "Hüquqlarınız",
+        privacy_p7: "İstənilən vaxt dəstək komandamızla əlaqə saxlayaraq məlumatlarınızın surətini tələb edə, onları düzəltməyimizi istəyə və ya hesabınızı və əlaqəli məlumatları silməyimizi tələb edə bilərsiniz.",
+        privacy_gotit: "Anladım"
+      }
+    };
+
+    let currentLang = localStorage.getItem('blindai_lang') || 'en';
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.en;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key] !== undefined) el.innerHTML = dict[key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (dict[key] !== undefined) el.setAttribute('placeholder', dict[key]);
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+      document.documentElement.lang = lang;
+      currentLang = lang;
+      localStorage.setItem('blindai_lang', lang);
+
+      // Refresh the demo status text for the currently active scenario
+      const activeSceneBtn = document.querySelector('.scenario-btn.active');
+      if (activeSceneBtn && typeof scenarios !== 'undefined') {
+        const scene = activeSceneBtn.dataset.scene;
+        const status = document.getElementById('demoStatus');
+        if (status && scenarios[scene]) status.textContent = scenarios[scene].text[lang] || scenarios[scene].text.en;
+      }
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
+    });
+
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
@@ -1179,10 +1453,10 @@
     }
 
     const scenarios = {
-      street: { text: "Listening to street environment...", bars: [80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90,40] },
-      home: { text: "Navigating indoor space...", bars: [30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60,30,40] },
-      transit: { text: "Monitoring transit surroundings...", bars: [60,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80] },
-      shopping: { text: "Reading products and aisles...", bars: [40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60] }
+      street: { text: { en: "Listening to street environment...", ru: "Прослушивание уличной обстановки...", az: "Küçə mühiti dinlənilir..." }, bars: [80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90,40] },
+      home: { text: { en: "Navigating indoor space...", ru: "Навигация в помещении...", az: "Daxili məkanda naviqasiya..." }, bars: [30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60,30,40] },
+      transit: { text: { en: "Monitoring transit surroundings...", ru: "Мониторинг обстановки в транспорте...", az: "Nəqliyyat ətrafı izlənilir..." }, bars: [60,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80] },
+      shopping: { text: { en: "Reading products and aisles...", ru: "Считывание товаров и рядов...", az: "Məhsullar və cərgələr oxunur..." }, bars: [40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60] }
     };
 
     document.querySelectorAll('.scenario-btn').forEach(btn => {
@@ -1190,7 +1464,7 @@
         document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const scene = btn.dataset.scene;
-        document.getElementById('demoStatus').textContent = scenarios[scene].text;
+        document.getElementById('demoStatus').textContent = scenarios[scene].text[currentLang] || scenarios[scene].text.en;
         const bars = waveContainer.querySelectorAll('.bar');
         bars.forEach((bar, i) => {
           bar.style.height = scenarios[scene].bars[i] + 'px';
@@ -1238,15 +1512,16 @@
     async function submitContactModal() {
       const email = contactEmail.value.trim();
       const message = contactMessage.value.trim();
+      const dict = translations[currentLang] || translations.en;
 
       if (!email || !message) {
-        contactStatus.textContent = 'Please fill in your email and message.';
+        contactStatus.textContent = dict.contact_err_fill;
         contactStatus.className = 'modal-status error';
         return;
       }
 
       contactSubmitBtn.disabled = true;
-      contactSubmitBtn.textContent = 'Sending...';
+      contactSubmitBtn.textContent = dict.contact_sending;
       contactStatus.textContent = '';
       contactStatus.className = 'modal-status';
 
@@ -1264,19 +1539,19 @@
         const result = await response.json();
 
         if (result.success) {
-          contactStatus.textContent = 'Thanks! Your message has been sent.';
+          contactStatus.textContent = dict.contact_success;
           contactStatus.className = 'modal-status success';
           setTimeout(closeContactModal, 1800);
         } else {
-          contactStatus.textContent = 'Something went wrong. Please try again.';
+          contactStatus.textContent = dict.contact_err_generic;
           contactStatus.className = 'modal-status error';
         }
       } catch (err) {
-        contactStatus.textContent = 'Network error. Please try again.';
+        contactStatus.textContent = dict.contact_err_network;
         contactStatus.className = 'modal-status error';
       } finally {
         contactSubmitBtn.disabled = false;
-        contactSubmitBtn.textContent = 'Submit';
+        contactSubmitBtn.textContent = dict.contact_submit;
       }
     }
     contactOverlay.addEventListener('click', (e) => {
@@ -1293,6 +1568,8 @@
     privacyOverlay.addEventListener('click', (e) => {
       if (e.target === privacyOverlay) closePrivacyModal();
     });
+
+    applyLanguage(currentLang);
   </script>
 </body>
 </html>
