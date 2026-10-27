@@ -1,0 +1,3874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blind AI — See Through Sound</title>
+  <meta name="description" content="Blind AI turns your surroundings into spatial audio so you can navigate with confidence: real-time obstacle detection, scene narration and on-device privacy.">
+  <meta name="theme-color" content="#050508">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Blind AI — See Through Sound">
+  <meta property="og:description" content="Blind AI turns your surroundings into spatial audio so you can navigate with confidence.">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script>
+    // Runs before first paint so saved accessibility settings never flash in the default look
+    (function () {
+      var root = document.documentElement;
+      root.className = 'js';
+      try {
+        var a11y = JSON.parse(localStorage.getItem('blindai_a11y') || '{}') || {};
+        if (a11y.text === 'lg' || a11y.text === 'xl') root.classList.add('text-' + a11y.text);
+        if (a11y.contrast) root.classList.add('hc');
+        if (a11y.calm) root.classList.add('calm');
+      } catch (err) { /* storage blocked: keep the defaults */ }
+    })();
+  </script>
+  <style>
+    :root {
+      --bg: #050508;
+      --bg-elevated: #0a0a12;
+      --bg-card: #10101a;
+      --accent-cyan: #00e5ff;
+      --accent-purple: #e040fb;
+      --accent-blue: #2979ff;
+      --accent-pink: #ff4081;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0b8;
+      --text-muted: #8b8ba3;
+      --on-accent: #05050a;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.16);
+      --gradient-1: linear-gradient(135deg, #00e5ff, #2979ff, #e040fb);
+      --gradient-2: linear-gradient(90deg, #00e5ff, #e040fb);
+      /* Space Grotesk has no Cyrillic, so Inter picks up the Russian headings */
+      --font-display: 'Space Grotesk', 'Inter', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @property --beam-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+    @property --spot { syntax: '<number>'; inherits: false; initial-value: 0; }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; color-scheme: dark; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    body.modal-open { overflow: hidden; }
+
+    button { font-family: inherit; }
+
+    :focus-visible {
+      outline: 2px solid var(--accent-cyan);
+      outline-offset: 3px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 1rem; top: -100px;
+      z-index: 200;
+      padding: 0.75rem 1.25rem;
+      border-radius: 100px;
+      background: var(--accent-cyan);
+      color: var(--on-accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    .icon {
+      width: 1.25em; height: 1.25em;
+      flex-shrink: 0;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon.solid { fill: currentColor; stroke: none; }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .site-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(5,5,8,0.7);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.3s ease;
+    }
+    .site-header.scrolled, .site-header.menu-open { background: rgba(5,5,8,0.95); }
+
+    .site-header nav {
+      padding: 1.2rem 4%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      transition: padding 0.3s ease;
+    }
+    .site-header.scrolled nav { padding: 0.8rem 4%; }
+
+    .scroll-progress {
+      position: absolute;
+      left: 0; bottom: -1px;
+      width: 100%; height: 2px;
+      background: var(--gradient-2);
+      transform: scaleX(0);
+      transform-origin: 0 50%;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.4rem;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+      white-space: nowrap;
+      border-radius: 8px;
+    }
+
+    .nav-logo img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .nav-logo span { background: var(--gradient-2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    .nav-links {
+      display: flex;
+      gap: clamp(1.2rem, 2.2vw, 2.5rem);
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: color 0.3s;
+      position: relative;
+    }
+
+    .nav-links a:hover, .nav-links a[aria-current] { color: var(--text-primary); }
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0;
+      width: 0; height: 2px;
+      background: var(--gradient-2);
+      transition: width 0.3s;
+    }
+    .nav-links a:hover::after, .nav-links a[aria-current]::after { width: 100%; }
+    .nav-links-cta { display: none; }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-cta {
+      min-height: 40px;
+      padding: 0.6rem 1.4rem;
+      border-radius: 100px;
+      background: var(--gradient-1);
+      color: var(--on-accent);
+      font-weight: 700;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .nav-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,229,255,0.3); }
+
+    .nav-toggle {
+      display: none;
+      width: 44px; height: 44px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-primary);
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .nav-toggle .icon-close { display: none; }
+    .site-header.menu-open .nav-toggle .icon-menu { display: none; }
+    .site-header.menu-open .nav-toggle .icon-close { display: block; }
+
+    .lang-switch {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 0.3rem;
+    }
+    .lang-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      min-width: 38px;
+      min-height: 32px;
+      padding: 0.35rem 0.7rem;
+      border-radius: 100px;
+      cursor: pointer;
+      transition: color 0.3s, background 0.3s;
+    }
+    .lang-btn:hover { color: var(--text-primary); }
+    .lang-btn.active {
+      background: var(--gradient-1);
+      color: var(--on-accent);
+    }
+
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 4% 4rem;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(620px circle at 18% 30%, rgba(0,229,255,0.10), transparent 62%),
+        radial-gradient(620px circle at 82% 38%, rgba(224,64,251,0.10), transparent 62%);
+      pointer-events: none;
+    }
+
+    .hero-content { position: relative; max-width: 900px; }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      background: rgba(0,229,255,0.08);
+      border: 1px solid rgba(0,229,255,0.2);
+      color: var(--accent-cyan);
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 2rem;
+      animation: blurFade 0.9s var(--ease-out) both;
+    }
+
+    .hero-badge .pulse {
+      width: 8px; height: 8px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      animation: pulse 2s infinite;
+    }
+
+    .shiny-text {
+      background: linear-gradient(110deg, var(--accent-cyan) 42%, #ffffff 50%, var(--accent-cyan) 58%);
+      background-size: 250% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shine 5s linear infinite;
+    }
+
+    @keyframes shine {
+      from { background-position: 120% 0; }
+      to { background-position: -130% 0; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 6vw, 5rem);
+      font-weight: 700;
+      line-height: 1.05;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.03em;
+      animation: blurFade 0.9s var(--ease-out) 0.1s both;
+    }
+
+    .gradient-text {
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* The headline gradient drifts slowly; the colour stops repeat so the loop is seamless */
+    .hero h1 .gradient-text {
+      background-image: linear-gradient(90deg, #00e5ff, #2979ff, #e040fb, #2979ff, #00e5ff);
+      background-size: 200% 100%;
+      animation: aurora 9s linear infinite;
+    }
+
+    @keyframes aurora { to { background-position: 200% 0; } }
+
+    .hero p {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 2.5rem;
+      animation: blurFade 0.9s var(--ease-out) 0.2s both;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .hero .hero-buttons { animation: blurFade 0.9s var(--ease-out) 0.3s both; }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      min-height: 48px;
+      padding: 1rem 2.2rem;
+      border-radius: 100px;
+      background: var(--gradient-1);
+      color: var(--on-accent);
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%);
+      transform: translateX(-120%);
+      transition: transform 0.7s var(--ease-out);
+      pointer-events: none;
+    }
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,229,255,0.35); }
+    .btn-primary:hover::after { transform: translateX(120%); }
+    .btn-primary:disabled { opacity: 0.6; cursor: progress; transform: none; box-shadow: none; }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      min-height: 48px;
+      padding: 1rem 2.2rem;
+      border-radius: 100px;
+      background: transparent;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 1rem;
+      border: 1.5px solid var(--border-strong);
+      cursor: pointer;
+      transition: border-color 0.3s, color 0.3s, background 0.3s;
+    }
+    .btn-secondary:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); background: rgba(0,229,255,0.05); }
+
+    .hero-visual {
+      position: relative;
+      z-index: -1;
+      width: min(320px, 78vw);
+      aspect-ratio: 1;
+      margin: 5rem auto 1rem;
+      display: grid;
+      place-items: center;
+      animation: blurFade 1.1s var(--ease-out) 0.5s both;
+    }
+    .hero-visual img {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      -webkit-mask-image: radial-gradient(closest-side, #000 84%, transparent 100%);
+      mask-image: radial-gradient(closest-side, #000 84%, transparent 100%);
+    }
+
+    .ripples {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: 300%;
+      aspect-ratio: 1;
+      transform: translate(-50%, -50%);
+      /* Rings fade out before they reach the headline and buttons above */
+      -webkit-mask-image: radial-gradient(closest-side, #000 30%, transparent 82%);
+      mask-image: radial-gradient(closest-side, #000 30%, transparent 82%);
+      pointer-events: none;
+    }
+    .ripple {
+      position: absolute;
+      left: 50%; top: 50%;
+      width: calc(38% + var(--i) * 9%);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--gradient-2);
+      opacity: 0.6;
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+      transform: translate(-50%, -50%);
+      animation: ripple 4s ease-in-out infinite;
+      animation-delay: calc(var(--i) * 0.14s);
+    }
+
+    @keyframes ripple {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(0.94); }
+    }
+
+    @keyframes blurFade {
+      from { opacity: 0; filter: blur(8px); transform: translateY(18px); }
+      to { opacity: 1; filter: blur(0); transform: translateY(0); }
+    }
+
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 4%;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 4rem;
+    }
+
+    .section-header h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section-header p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .stats { padding: 0 4% 5rem; }
+
+    .stats-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      overflow: hidden;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 0.35rem;
+      padding: 1.75rem 1rem;
+      text-align: center;
+      background: var(--bg-card);
+    }
+    .stat dt { color: var(--text-secondary); font-size: 0.9rem; }
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 700;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-unit { font-size: 0.5em; }
+
+    .how-it-works { background: var(--bg-elevated); }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem;
+      transition: transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, --spot 0.4s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--gradient-1);
+      transform: scaleX(0);
+      transition: transform 0.4s;
+    }
+
+    .step-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(0,229,255,0.2);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .step-card:hover::before { transform: scaleX(1); }
+
+    .step-number {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      background: var(--gradient-1);
+      color: var(--on-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .step-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+    }
+    .step-card p { color: var(--text-secondary); font-size: 0.95rem; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .feature {
+      grid-column: span 2;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      transition: transform 0.3s, border-color 0.3s, --spot 0.4s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .feature:hover { border-color: rgba(0,229,255,0.15); transform: translateY(-4px); }
+    .feature.wide { grid-column: span 4; flex-direction: row; gap: 2rem; }
+    .feature.half { grid-column: span 3; }
+
+    .feature-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .feature-visual {
+      flex: 0 0 42%;
+      min-height: 170px;
+      display: grid;
+      align-items: end;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .feature-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .feature-icon.cyan { background: rgba(0,229,255,0.1); color: var(--accent-cyan); }
+    .feature-icon.purple { background: rgba(224,64,251,0.1); color: var(--accent-purple); }
+    .feature-icon.blue { background: rgba(41,121,255,0.14); color: #6ea8ff; }
+    .feature-icon.pink { background: rgba(255,64,129,0.1); color: var(--accent-pink); }
+
+    .feature h3 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; }
+    .feature p { color: var(--text-secondary); font-size: 0.9rem; }
+
+    .fv-caption {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.25rem;
+    }
+    .fv-bubble {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--accent-pink);
+    }
+    .fv-lines { flex: 1; display: flex; flex-direction: column; gap: 0.45rem; }
+    .fv-line {
+      display: block;
+      width: var(--w);
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1));
+      transform-origin: left;
+      animation: typeLine 4.5s var(--ease-out) infinite;
+      animation-delay: var(--d, 0s);
+    }
+
+    @keyframes typeLine {
+      0% { transform: scaleX(0); opacity: 0.4; }
+      25%, 85% { transform: scaleX(1); opacity: 1; }
+      100% { transform: scaleX(1); opacity: 0; }
+    }
+
+    .radar {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      aspect-ratio: 2 / 1.05;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .radar-ring {
+      position: absolute;
+      left: 50%; bottom: 0;
+      width: var(--s);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--gradient-2);
+      opacity: var(--o);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+      transform: translate(-50%, 50%);
+    }
+    .radar-blip {
+      position: absolute;
+      width: 12px; height: 12px;
+      margin: -6px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.4;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .radar-blip::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      opacity: 0;
+    }
+    .radar-blip[data-pos="left"] { left: 20%; top: 56%; color: var(--accent-cyan); }
+    .radar-blip[data-pos="center"] { left: 50%; top: 22%; color: #ffffff; }
+    .radar-blip[data-pos="right"] { left: 80%; top: 56%; color: var(--accent-purple); }
+    .radar-blip.is-active { opacity: 1; transform: scale(1.4); }
+    .radar-blip.is-active::after { animation: ping 1.2s ease-out infinite; }
+
+    .radar-auto .radar-blip { animation: blipAuto 3.6s ease-in-out infinite; }
+    .radar-auto .radar-blip::after { animation: ping 3.6s ease-out infinite; }
+    .radar-auto .radar-blip[data-pos="center"], .radar-auto .radar-blip[data-pos="center"]::after { animation-delay: 1.2s; }
+    .radar-auto .radar-blip[data-pos="right"], .radar-auto .radar-blip[data-pos="right"]::after { animation-delay: 2.4s; }
+
+    @keyframes ping {
+      0% { transform: scale(1); opacity: 0.8; }
+      35%, 100% { transform: scale(3.2); opacity: 0; }
+    }
+    @keyframes blipAuto {
+      0%, 40%, 100% { opacity: 0.4; transform: scale(1); }
+      10% { opacity: 1; transform: scale(1.4); }
+    }
+
+    .radar-listener {
+      position: absolute;
+      left: 50%; bottom: 6px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--gradient-1);
+      color: var(--on-accent);
+      display: grid;
+      place-items: center;
+      transform: translateX(-50%);
+    }
+    .radar-label {
+      position: absolute;
+      transform: translateX(-50%);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .radar-label[data-pos="left"] { left: 20%; top: 68%; }
+    .radar-label[data-pos="center"] { left: 50%; top: 33%; }
+    .radar-label[data-pos="right"] { left: 80%; top: 68%; }
+
+    .demo { background: var(--bg-elevated); }
+
+    .demo-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      overflow: hidden;
+    }
+
+    .demo-visual {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 2.5rem;
+      align-items: center;
+      padding: 2.5rem;
+      background: linear-gradient(180deg, #0a0a18 0%, #050510 100%);
+    }
+
+    .demo-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      min-width: 0;
+    }
+
+    .sound-wave-container {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      height: 56px;
+    }
+
+    .bar {
+      width: 5px;
+      height: var(--h, 30px);
+      border-radius: 3px;
+      background: var(--gradient-1);
+      transition: height 0.4s var(--ease-out);
+      animation: soundWave 1.2s ease-in-out infinite;
+    }
+
+    @keyframes soundWave {
+      0%, 100% { transform: scaleY(0.35); opacity: 0.5; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+
+    .demo-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      min-width: 0;
+    }
+
+    .demo-cues {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .demo-cue {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      transition: border-color 0.3s, background 0.3s, color 0.3s;
+    }
+    .demo-cue.is-active {
+      border-color: rgba(0,229,255,0.45);
+      background: rgba(0,229,255,0.07);
+      color: var(--text-primary);
+    }
+    .cue-dir {
+      flex: 0 0 auto;
+      min-width: 5rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .demo-cue[data-pos="left"] .cue-dir { color: var(--accent-cyan); background: rgba(0,229,255,0.1); }
+    .demo-cue[data-pos="center"] .cue-dir { color: #ffffff; background: rgba(255,255,255,0.1); }
+    .demo-cue[data-pos="right"] .cue-dir { color: var(--accent-purple); background: rgba(224,64,251,0.12); }
+
+    .demo-play { align-self: flex-start; }
+    .demo-play .icon-stop { display: none; }
+    .demo-play.is-playing .icon-play { display: none; }
+    .demo-play.is-playing .icon-stop { display: block; }
+
+    .demo-hint { color: var(--text-muted); font-size: 0.85rem; }
+
+    .demo-controls {
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .demo-scenarios {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .scenario-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 44px;
+      padding: 0.6rem 1.2rem;
+      border-radius: 100px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    .scenario-btn:hover, .scenario-btn.active {
+      background: rgba(0,229,255,0.1);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .demo-status {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .status-dot {
+      width: 10px; height: 10px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      animation: pulse 2s infinite;
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .testimonial {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      position: relative;
+      transition: transform 0.3s, border-color 0.3s, --spot 0.4s ease;
+    }
+    .testimonial:hover { transform: translateY(-4px); border-color: rgba(224,64,251,0.2); }
+    .testimonial::before {
+      content: '\201D';
+      position: absolute;
+      top: 1rem; right: 1.5rem;
+      font-family: var(--font-display);
+      font-size: 4.5rem;
+      line-height: 1;
+      color: rgba(224,64,251,0.18);
+      pointer-events: none;
+    }
+
+    .testimonial-stars { display: flex; gap: 0.2rem; color: #ffc107; margin-bottom: 1rem; font-size: 0.95rem; }
+    .testimonial-text { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.7; }
+    .testimonial-author { display: flex; align-items: center; gap: 1rem; }
+    .testimonial-avatar {
+      width: 44px; height: 44px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--gradient-1);
+      color: var(--on-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .testimonial-name { font-weight: 600; }
+    .testimonial-role { color: var(--text-muted); font-size: 0.8rem; }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+      gap: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem;
+      text-align: center;
+      transition: transform 0.4s;
+      position: relative;
+    }
+    .pricing-card:hover { transform: translateY(-8px); }
+
+    .pricing-card.popular {
+      border-color: rgba(0,229,255,0.3);
+      box-shadow: 0 0 60px rgba(0,229,255,0.08);
+    }
+
+    /* A light that travels around the card border */
+    .border-beam::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      padding: 1.5px;
+      border-radius: inherit;
+      background: conic-gradient(from var(--beam-angle), transparent 0 68%, var(--accent-cyan) 82%, var(--accent-purple) 93%, transparent 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+      animation: beam 7s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes beam { to { --beam-angle: 360deg; } }
+
+    .popular-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      z-index: 1;
+      transform: translateX(-50%);
+      padding: 0.4rem 1.2rem;
+      border-radius: 100px;
+      background: var(--gradient-1);
+      color: var(--on-accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      width: max-content;
+      max-width: calc(100% - 2rem);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pricing-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .pricing-card .price {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: center;
+      column-gap: 0.4rem;
+      font-size: 3rem;
+      font-weight: 800;
+      font-family: var(--font-display);
+      margin: 1rem 0;
+    }
+    .pricing-card .price span { font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+    .pricing-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+    .pricing-features {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 2rem;
+    }
+    .pricing-features li {
+      padding: 0.6rem 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features .check { color: var(--accent-cyan); stroke-width: 3; }
+
+    .pricing-grid.single {
+      grid-template-columns: minmax(0, 480px);
+      justify-content: center;
+      max-width: 480px;
+    }
+
+    .early-bird {
+      scroll-margin-top: 100px;
+      max-width: 700px;
+      margin: 3.5rem auto 0;
+      background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(224,64,251,0.06));
+      border: 1.5px solid rgba(224,64,251,0.3);
+      border-radius: 24px;
+      padding: 2.5rem;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 0 60px rgba(224,64,251,0.08);
+    }
+
+    .early-bird-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.4rem 1.2rem;
+      border-radius: 100px;
+      background: var(--gradient-1);
+      color: var(--on-accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      width: max-content;
+      max-width: calc(100% - 2rem);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .early-bird h3 {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+
+    .early-bird p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      max-width: 480px;
+      margin: 0 auto 1.5rem;
+    }
+    .early-bird p strong { color: var(--accent-cyan); }
+
+    .early-bird-price {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: center;
+      gap: 0.5rem 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .early-bird-price .old-price {
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      text-decoration: line-through;
+      font-family: var(--font-display);
+    }
+    .early-bird-price .new-price {
+      font-size: 3rem;
+      font-weight: 800;
+      font-family: var(--font-display);
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .early-bird-spots {
+      color: var(--accent-pink);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.75rem;
+    }
+
+    .early-bird .btn-primary { padding: 1rem 2.5rem; }
+
+    a.btn-primary, a.btn-secondary { text-decoration: none; }
+    .icon-wa { color: #25d366; }
+
+    /* Hairline glow where an elevated section begins */
+    .how-it-works::before, .demo::before, .roadmap::before, .orgs::before, .faq::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 12%; right: 12%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0,229,255,0.4), rgba(224,64,251,0.4), transparent);
+      pointer-events: none;
+    }
+
+    .safety {
+      scroll-margin-top: 100px;
+      max-width: 1000px;
+      margin: 2.5rem auto 0;
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.75rem 2rem;
+      border: 1px solid rgba(255,193,7,0.35);
+      border-radius: 20px;
+      background: rgba(255,193,7,0.05);
+    }
+    .safety-icon {
+      flex-shrink: 0;
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 1.4rem;
+      background: rgba(255,193,7,0.12);
+      color: #ffc107;
+    }
+    .safety h3 {
+      color: #ffc107;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .safety-lead {
+      font-family: var(--font-display);
+      font-size: 1.2rem;
+      font-weight: 600;
+      line-height: 1.35;
+      margin-bottom: 1rem;
+    }
+    .safety ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .safety li {
+      position: relative;
+      padding-left: 1.25rem;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+    .safety li::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0.65em;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #ffc107;
+    }
+
+    .roadmap { background: var(--bg-elevated); }
+
+    .road {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .road-step {
+      position: relative;
+      padding: 0 1rem;
+      text-align: center;
+    }
+    /* Connector from one stage to the next; finished stages get the gradient on top */
+    .road-step:not(:last-child)::before, .road-step.is-done::after {
+      content: '';
+      position: absolute;
+      top: 21px; left: 50%;
+      width: 100%; height: 2px;
+    }
+    .road-step:not(:last-child)::before { background: var(--border-strong); }
+    .road-step.is-done::after {
+      background: var(--gradient-2);
+      transform-origin: left top;
+      transition: transform 1.2s var(--ease-out) 0.4s;
+    }
+    .js .road:not(.seen) .road-step.is-done::after { transform: scaleX(0); }
+
+    .road-node {
+      position: relative;
+      z-index: 1;
+      width: 44px; height: 44px;
+      margin: 0 auto 1.25rem;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--bg-card);
+      border: 2px solid var(--border-strong);
+      color: var(--text-secondary);
+      font-family: var(--font-display);
+      font-weight: 700;
+    }
+    .road-step.is-done .road-node {
+      background: var(--gradient-1) border-box;
+      border-color: transparent;
+      color: var(--on-accent);
+    }
+    .road-step.is-done .road-node .icon { stroke-width: 3; }
+    .road-step.is-current .road-node {
+      border-color: var(--accent-cyan);
+      color: var(--text-primary);
+      box-shadow: 0 0 0 6px rgba(0,229,255,0.12), 0 0 30px rgba(0,229,255,0.35);
+    }
+    .road-step.is-current .road-node::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      border: 2px solid var(--accent-cyan);
+      animation: nodePulse 2.4s ease-out infinite;
+    }
+
+    @keyframes nodePulse {
+      0% { transform: scale(1); opacity: 0.7; }
+      70%, 100% { transform: scale(1.9); opacity: 0; }
+    }
+
+    .road-status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      border: 1px solid var(--border-strong);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .road-step.is-done .road-status { color: var(--accent-cyan); border-color: rgba(0,229,255,0.35); }
+    .road-step.is-current .road-status { background: var(--gradient-1); border-color: transparent; color: var(--on-accent); }
+
+    .road-step h3 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .road-step p { color: var(--text-secondary); font-size: 0.9rem; }
+
+    .orgs { background: var(--bg-elevated); }
+
+    .org-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .org-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      transition: transform 0.3s, border-color 0.3s, --spot 0.4s ease;
+    }
+    .org-card:hover { transform: translateY(-4px); border-color: rgba(0,229,255,0.15); }
+    .org-card h3 { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; }
+    .org-card p { color: var(--text-secondary); font-size: 0.9rem; }
+
+    .org-panel {
+      max-width: 1200px;
+      margin: 1.5rem auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2.5rem;
+      padding: 2rem 2.5rem;
+      border: 1px solid rgba(0,229,255,0.2);
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(224,64,251,0.06));
+    }
+    .org-benefits {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .org-benefits li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .org-benefits .icon { color: var(--accent-cyan); stroke-width: 3; margin-top: 0.2em; }
+    .org-benefits strong { color: var(--text-primary); font-weight: 600; }
+    .org-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .wa-fab {
+      position: fixed;
+      right: max(1.25rem, env(safe-area-inset-right));
+      bottom: max(1.25rem, env(safe-area-inset-bottom));
+      z-index: 90;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      min-height: 56px;
+      padding: 0 1.4rem 0 1.15rem;
+      border-radius: 100px;
+      background: #25d366;
+      color: #04140a;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      box-shadow: 0 10px 30px rgba(37,211,102,0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .wa-fab:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(37,211,102,0.45); }
+    .wa-fab .icon { font-size: 1.4rem; }
+    .wa-fab::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      animation: waPulse 2.8s ease-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes waPulse {
+      0% { box-shadow: 0 0 0 0 rgba(37,211,102,0.5); }
+      70%, 100% { box-shadow: 0 0 0 16px rgba(37,211,102,0); }
+    }
+
+    .cta {
+      text-align: center;
+      padding: 8rem 4%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-dots {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255,255,255,0.22) 1px, transparent 1px);
+      background-size: 22px 22px;
+      -webkit-mask-image: radial-gradient(ellipse at center, #000 10%, transparent 68%);
+      mask-image: radial-gradient(ellipse at center, #000 10%, transparent 68%);
+      pointer-events: none;
+    }
+
+    .cta h2 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .cta p {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      max-width: 500px;
+      margin: 0 auto 2rem;
+      position: relative;
+    }
+    .cta .hero-buttons { position: relative; }
+
+    footer {
+      border-top: 1px solid var(--border);
+      /* Bottom room so the two floating buttons never cover the last line */
+      padding: 4rem 4% 6rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .footer-grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.4fr repeat(3, 1fr);
+      gap: 2.5rem;
+    }
+
+    .footer-logo {
+      display: inline-flex;
+      margin-bottom: 0.75rem;
+      font-size: 1.2rem;
+    }
+    .footer-brand p {
+      max-width: 260px;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+
+    .footer-col h2 {
+      margin-bottom: 0.75rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .footer-col ul { list-style: none; }
+    .footer-col a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .footer-col a:hover { color: var(--accent-cyan); }
+
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 2.5rem auto 0;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    .footer-contact {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 44px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .footer-contact:hover { color: var(--text-primary); }
+
+    /* Pointer-following glow on the card border (Magic UI "magic card") */
+    .spot { position: relative; }
+    .spot::after {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      padding: 1px;
+      border-radius: inherit;
+      background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(0,229,255, calc(var(--spot) * 0.9)), rgba(224,64,251, calc(var(--spot) * 0.55)) 45%, transparent 75%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+      pointer-events: none;
+    }
+
+    /* Step cards clip overflow (for their top bar), so their glow sits just inside the border */
+    .step-card.spot::after { inset: 0; }
+
+    .step-mark {
+      position: absolute;
+      top: 2.25rem; right: 2.25rem;
+      width: 56px; height: 56px;
+      stroke-width: 1.4;
+      color: rgba(255,255,255,0.07);
+      transition: color 0.4s, transform 0.4s var(--ease-out);
+    }
+    .step-card:hover .step-mark { color: rgba(0,229,255,0.35); transform: scale(1.06) rotate(-4deg); }
+
+    .discount-pill {
+      align-self: center;
+      padding: 0.3rem 0.7rem;
+      border-radius: 100px;
+      background: rgba(255,64,129,0.14);
+      color: var(--accent-pink);
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .faq-list {
+      max-width: 820px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      transition: border-color 0.3s;
+    }
+    .faq-item[open] { border-color: rgba(0,229,255,0.3); }
+    .faq-item summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 64px;
+      padding: 1rem 1.5rem;
+      border-radius: 16px;
+      list-style: none;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary .icon {
+      color: var(--text-secondary);
+      transition: transform 0.3s var(--ease-out), color 0.3s;
+    }
+    .faq-item summary:hover .icon { color: var(--accent-cyan); }
+    .faq-item[open] summary .icon { transform: rotate(180deg); color: var(--accent-cyan); }
+    .faq-answer {
+      padding: 0 1.5rem 1.25rem;
+      color: var(--text-secondary);
+      animation: faqIn 0.35s var(--ease-out);
+    }
+
+    @keyframes faqIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .faq-more {
+      max-width: 820px;
+      margin: 2.5rem auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      text-align: center;
+    }
+    .faq-more p { width: 100%; color: var(--text-secondary); }
+    .faq-more .btn-secondary { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
+
+    .a11y-fab {
+      position: fixed;
+      left: max(1.25rem, env(safe-area-inset-left));
+      bottom: max(1.25rem, env(safe-area-inset-bottom));
+      z-index: 90;
+      width: 52px; height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      border: 1px solid var(--border-strong);
+      background: rgba(16,16,26,0.9);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      color: var(--text-primary);
+      font-size: 1.3rem;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      transition: border-color 0.3s, color 0.3s;
+    }
+    .a11y-fab:hover, .a11y-fab[aria-expanded="true"] { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .a11y-fab.is-active::after {
+      content: '';
+      position: absolute;
+      top: 3px; right: 3px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+      background: var(--accent-cyan);
+    }
+
+    .a11y-panel {
+      position: fixed;
+      left: max(1.25rem, env(safe-area-inset-left));
+      bottom: calc(max(1.25rem, env(safe-area-inset-bottom)) + 64px);
+      z-index: 95;
+      width: min(340px, calc(100vw - 2.5rem));
+      max-height: calc(100vh - 140px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      padding: 1.25rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+      animation: modalIn 0.25s var(--ease-out);
+    }
+    .a11y-panel[hidden] { display: none; }
+    .a11y-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .a11y-head h2 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; }
+    .a11y-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+    .a11y-seg {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.25rem;
+      padding: 0.25rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+    }
+    .a11y-seg button {
+      min-height: 44px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.25s, color 0.25s;
+    }
+    .a11y-seg button:hover { color: var(--text-primary); }
+    .a11y-seg button[aria-pressed="true"] { background: var(--gradient-1); color: var(--on-accent); }
+    .a11y-switch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 48px;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      font-weight: 500;
+      text-align: left;
+      cursor: pointer;
+    }
+    .a11y-knob {
+      position: relative;
+      flex-shrink: 0;
+      width: 40px; height: 24px;
+      border-radius: 100px;
+      background: rgba(255,255,255,0.18);
+      transition: background 0.25s;
+    }
+    .a11y-knob::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      transition: transform 0.25s var(--ease-out);
+    }
+    .a11y-switch[aria-checked="true"] .a11y-knob { background: var(--accent-cyan); }
+    .a11y-switch[aria-checked="true"] .a11y-knob::after { transform: translateX(16px); background: var(--on-accent); }
+    .a11y-read { width: 100%; padding: 0.8rem 1.2rem; font-size: 0.95rem; }
+    .a11y-read .icon-stop { display: none; }
+    .a11y-read.is-playing .icon-play { display: none; }
+    .a11y-read.is-playing .icon-stop { display: block; }
+    .a11y-status { color: var(--accent-pink); font-size: 0.85rem; }
+    .a11y-status:empty { display: none; }
+    .a11y-reset {
+      align-self: center;
+      min-height: 44px;
+      padding: 0 1rem;
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    /* The block currently being read aloud */
+    .is-reading {
+      outline: 2px solid var(--accent-cyan);
+      outline-offset: 6px;
+      border-radius: 4px;
+    }
+
+    h1, h2, h3 { text-wrap: balance; }
+    p, li, blockquote { text-wrap: pretty; }
+    /* Long single words (e.g. "Конфиденциальность") may break rather than push the page wider than the screen at large text sizes */
+    h1, h2, h3, h4, p, li, dt, dd, summary, a, blockquote { overflow-wrap: anywhere; }
+
+    /* Accessibility panel: larger text. The header keeps its size so the navigation still fits on one line. */
+    html.text-lg { font-size: 115%; }
+    html.text-xl { font-size: 130%; }
+    html.text-lg .site-header { zoom: 0.8696; }
+    html.text-xl .site-header { zoom: 0.7692; }
+
+    /* Accessibility panel: high contrast — brighter text and borders, decorative layers removed */
+    html.hc {
+      --bg: #000000;
+      --bg-elevated: #000000;
+      --bg-card: #000000;
+      --text-secondary: #f0f0f5;
+      --text-muted: #d4d4e0;
+      --border: rgba(255,255,255,0.5);
+      --border-strong: rgba(255,255,255,0.8);
+    }
+    html.hc #bg-canvas, html.hc .hero::before, html.hc .cta::before, html.hc .cta-dots, html.hc .ripples, html.hc .testimonial::before { display: none; }
+    html.hc .gradient-text, html.hc .nav-logo span, html.hc .stat-value, html.hc .new-price, html.hc .shiny-text {
+      background: none;
+      -webkit-text-fill-color: currentColor;
+      color: #66f4ff;
+    }
+    html.hc :focus-visible { outline: 3px solid #ffeb3b; outline-offset: 3px; }
+
+    /* Accessibility panel: stop animations (same effect as the system "reduce motion" setting) */
+    html.calm { scroll-behavior: auto; }
+    html.calm *, html.calm *::before, html.calm *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    html.calm.js .reveal { opacity: 1; filter: none; transform: none; }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .modal-overlay.active { display: flex; }
+
+    .modal-card {
+      width: 100%;
+      max-width: 560px;
+      max-height: calc(100vh - 3rem);
+      overflow-y: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+      animation: modalIn 0.3s var(--ease-out);
+    }
+    .modal-card.modal-scroll {
+      max-width: 640px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .modal-header h3 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .modal-close {
+      display: grid;
+      place-items: center;
+      width: 44px; height: 44px;
+      margin: -0.5rem -0.5rem -0.5rem 0;
+      background: transparent;
+      border: none;
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: color 0.3s, background 0.3s;
+    }
+    .modal-close:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+
+    .modal-label {
+      display: block;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-textarea {
+      width: 100%;
+      min-height: 160px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      padding: 1rem;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      resize: vertical;
+      margin-bottom: 1.25rem;
+    }
+    .modal-textarea:focus { border-color: var(--accent-cyan); }
+    .modal-textarea::placeholder { color: var(--text-muted); }
+
+    .modal-input {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .modal-input:focus { border-color: var(--accent-cyan); }
+    .modal-input::placeholder { color: var(--text-muted); }
+
+    .modal-status {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      min-height: 1.2em;
+    }
+    .modal-status.success { color: var(--accent-cyan); }
+    .modal-status.error { color: var(--accent-pink); }
+
+    .modal-hint {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-upload {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 88px;
+      height: 88px;
+      border-radius: 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      font-size: 1.4rem;
+      cursor: pointer;
+      margin-bottom: 2rem;
+      transition: border-color 0.3s, color 0.3s;
+    }
+    .modal-upload:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+    .modal-upload:focus-within { outline: 2px solid var(--accent-cyan); outline-offset: 3px; }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+    .modal-actions button { padding: 0.7rem 1.6rem; }
+
+    .modal-body {
+      overflow-y: auto;
+      padding-right: 0.5rem;
+      color: var(--text-secondary);
+      font-size: 0.92rem;
+      line-height: 1.7;
+    }
+    .modal-body h4 {
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      margin-bottom: 0.5rem;
+    }
+    .modal-body p { margin-bottom: 1.25rem; }
+    .modal-body .modal-updated { color: var(--text-muted); font-size: 0.8rem; }
+    .modal-scroll .modal-actions { margin-top: 1.25rem; }
+
+    /* Spotlight that follows the pointer across a card */
+    .spot {
+      background-image: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(0,229,255, calc(var(--spot) * 0.09)), transparent 60%);
+    }
+    .spot.spot-purple {
+      background-image: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(224,64,251, calc(var(--spot) * 0.09)), transparent 60%);
+    }
+    .spot:hover { --spot: 1; }
+
+    .js .reveal {
+      opacity: 0;
+      filter: blur(6px);
+      transform: translateY(28px);
+      transition: opacity 0.8s var(--ease-out), filter 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+    }
+    .js .reveal.active {
+      opacity: 1;
+      filter: blur(0);
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1100px) {
+      .nav-toggle { display: inline-flex; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%; left: 0; right: 0;
+        flex-direction: column;
+        gap: 0;
+        padding: 0.5rem 4% 1.25rem;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+      }
+      .site-header.menu-open .nav-links { display: flex; }
+      .nav-links a {
+        display: block;
+        padding: 0.9rem 0;
+        font-size: 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .nav-links a::after { display: none; }
+    }
+
+    @media (max-width: 900px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .feature, .feature.half { grid-column: span 1; }
+      .feature.wide { grid-column: span 2; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .demo-visual { grid-template-columns: 1fr; padding: 2rem; }
+      .org-grid { grid-template-columns: repeat(2, 1fr); }
+      .org-panel { flex-direction: column; align-items: stretch; gap: 1.75rem; }
+      .footer-grid { grid-template-columns: repeat(3, 1fr); }
+      .footer-brand { grid-column: 1 / -1; }
+
+      .road { grid-template-columns: 1fr; max-width: 560px; }
+      .road-step {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        column-gap: 1.25rem;
+        padding: 0 0 2.25rem;
+        text-align: left;
+      }
+      .road-step:last-child { padding-bottom: 0; }
+      .road-node { grid-row: 1 / span 3; margin: 0; }
+      .road-status { justify-self: start; }
+      .road-step:not(:last-child)::before, .road-step.is-done::after {
+        top: 44px; left: 21px;
+        width: 2px; height: calc(100% - 44px);
+      }
+      .road-step.is-done::after { background: linear-gradient(180deg, #00e5ff, #e040fb); }
+      .js .road:not(.seen) .road-step.is-done::after { transform: scaleY(0); }
+    }
+
+    @media (max-width: 768px) {
+      .hero { padding-top: 7rem; }
+      section { padding: 4rem 4%; }
+      .stats { padding: 0 4% 4rem; }
+      .demo-controls { flex-direction: column; align-items: stretch; }
+      .lang-switch { padding: 0.25rem; }
+      .lang-btn { padding: 0.3rem 0.55rem; font-size: 0.75rem; }
+    }
+
+    @media (max-width: 640px) {
+      .nav-cta { display: none; }
+      .nav-links-cta { display: block; padding-top: 1rem; }
+      .nav-links-cta .btn-primary { width: 100%; }
+      .features-grid { grid-template-columns: 1fr; }
+      .feature.wide { grid-column: span 1; flex-direction: column; }
+      .feature-visual { flex-basis: auto; }
+      .step-card, .pricing-card, .early-bird { padding: 2rem 1.5rem; }
+      .demo-visual { padding: 1.5rem; }
+      .demo-controls { padding: 1.5rem; }
+      .demo-play { align-self: stretch; }
+      .hero-buttons > button, .hero-buttons > a { flex: 1 1 100%; }
+      .org-grid { grid-template-columns: 1fr; }
+      .org-panel { padding: 1.75rem 1.5rem; }
+      /* Two link columns normally; with enlarged text they stack instead of squeezing */
+      .footer-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: 2rem 1.5rem; }
+      .faq-item summary { padding: 1rem 1.25rem; font-size: 1rem; }
+      .faq-answer { padding: 0 1.25rem 1.25rem; }
+      .step-mark { top: 2rem; right: 1.5rem; width: 48px; height: 48px; }
+      .safety { flex-direction: column; gap: 1rem; padding: 1.5rem; }
+      /* Icon-only on phones; the label stays available to screen readers */
+      .wa-fab { width: 56px; padding: 0; justify-content: center; }
+      .wa-fab > span {
+        position: absolute;
+        width: 1px; height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+
+    /* Very narrow phones: the header only fits with the logo mark, so the name is kept for screen readers only */
+    @media (max-width: 360px) {
+      .site-header .nav-logo span {
+        position: absolute;
+        width: 1px; height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+      .nav-actions { gap: 0.5rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .js .reveal { opacity: 1; filter: none; transform: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <a class="skip-link" href="#main" data-i18n="skip_link">Skip to main content</a>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 3 20 12 6 21Z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></symbol>
+    <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H7"/><path d="M17 12H7"/></symbol>
+    <symbol id="i-battery" viewBox="0 0 24 24"><rect x="2" y="7" width="16" height="10" rx="2"/><path d="M22 11v2"/><path d="M6 11v2"/><path d="M10 11v2"/><path d="M14 11v2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol>
+    <symbol id="i-street" viewBox="0 0 24 24"><path d="M3 11 22 2l-9 19-2-8-8-2z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-bus" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="15" rx="2"/><path d="M4 11h16"/><path d="M8 15h.01"/><path d="M16 15h.01"/><path d="M7 18v3"/><path d="M17 18v3"/></symbol>
+    <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/></symbol>
+    <symbol id="i-school" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M12 6h.01"/><path d="M16 6h.01"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M16 10h.01"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-access" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="7" r="1"/><path d="M7.5 10h9"/><path d="M12 10v4"/><path d="m9.5 18 2.5-4 2.5 4"/></symbol>
+    <symbol id="i-whatsapp" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></symbol>
+  </svg>
+
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+  <header class="site-header" id="siteHeader">
+    <nav>
+      <a class="nav-logo" href="/" onclick="goToHome(); return false;">
+        <img src="logo-96.webp" alt="" width="36" height="36">
+        <span>Blind AI</span>
+      </a>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="/how" data-i18n="nav_how" onclick="return goToSection(event, 'how')">How It Works</a></li>
+        <li><a href="/features" data-i18n="nav_features" onclick="return goToSection(event, 'features')">Features</a></li>
+        <li><a href="/demo" data-i18n="nav_demo" onclick="return goToSection(event, 'demo')">Demo</a></li>
+        <li><a href="/pricing" data-i18n="nav_pricing" onclick="return goToSection(event, 'pricing')">Pricing</a></li>
+        <li><a href="/contact" data-i18n="nav_contact" onclick="return goToSection(event, 'contact')">Contact</a></li>
+        <li class="nav-links-cta"><button class="btn-primary" data-i18n="nav_cta" onclick="scrollToId('early-access')">Get Early Access</button></li>
+      </ul>
+      <div class="nav-actions">
+        <div class="lang-switch" id="langSwitch" role="group" aria-label="Language" data-i18n-aria-label="aria_lang">
+          <button class="lang-btn" data-lang="en" lang="en" aria-label="English">En</button>
+          <button class="lang-btn" data-lang="ru" lang="ru" aria-label="Русский">Ru</button>
+          <button class="lang-btn" data-lang="az" lang="az" aria-label="Azərbaycanca">Az</button>
+        </div>
+        <button class="nav-cta" data-i18n="nav_cta" onclick="scrollToId('early-access')">Get Early Access</button>
+        <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="navLinks" aria-label="Menu" data-i18n-aria-label="aria_menu">
+          <svg class="icon icon-menu" aria-hidden="true"><use href="#i-menu"/></svg>
+          <svg class="icon icon-close" aria-hidden="true"><use href="#i-close"/></svg>
+        </button>
+      </div>
+    </nav>
+    <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+  </header>
+
+  <main id="main" tabindex="-1">
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="pulse"></span>
+        <span class="shiny-text" data-i18n="hero_badge">Prototype stage — early access is open</span>
+      </div>
+      <h1 data-i18n="hero_title">
+        See the World<br>
+        <span class="gradient-text">Through Sound</span>
+      </h1>
+      <p data-i18n="hero_desc">
+        Blind AI transforms your surroundings into rich, spatial audio.
+        Using just your camera and earbuds, navigate the world with confidence —
+        no special hardware required.
+      </p>
+      <div class="hero-buttons">
+        <button class="btn-primary" data-i18n="hero_btn_trial" onclick="scrollToId('pricing')">Start Trial</button>
+        <button class="btn-secondary" onclick="scrollToId('demo')">
+          <svg class="icon solid" aria-hidden="true"><use href="#i-play"/></svg>
+          <span data-i18n="hero_btn_demo">Watch Demo</span>
+        </button>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="ripples">
+          <span class="ripple" style="--i:0"></span>
+          <span class="ripple" style="--i:1"></span>
+          <span class="ripple" style="--i:2"></span>
+          <span class="ripple" style="--i:3"></span>
+          <span class="ripple" style="--i:4"></span>
+        </div>
+        <img src="logo-640.webp" alt="" width="320" height="320">
+      </div>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="Key facts" data-i18n-aria-label="aria_stats">
+    <dl class="stats-grid reveal">
+      <div class="stat">
+        <dt data-i18n="stat_1">Response latency</dt>
+        <dd class="stat-value">&lt;<span data-ticker="100">100</span> <span class="stat-unit" data-i18n="stat_1_unit">ms</span></dd>
+      </div>
+      <div class="stat">
+        <dt data-i18n="stat_2">Processed on-device</dt>
+        <dd class="stat-value"><span data-ticker="100">100</span>%</dd>
+      </div>
+      <div class="stat">
+        <dt data-i18n="stat_3">Monthly fees</dt>
+        <dd class="stat-value">$<span data-ticker="0" data-ticker-from="99">0</span></dd>
+      </div>
+      <div class="stat">
+        <dt data-i18n="stat_4">Warranty &amp; support</dt>
+        <dd class="stat-value">1 <span class="stat-unit" data-i18n="stat_4_unit">year</span></dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="how-it-works" id="how">
+    <div class="section-header reveal">
+      <h2 data-i18n="how_title">How It <span class="gradient-text">Works</span></h2>
+      <p data-i18n="how_desc">Three simple steps to a new way of experiencing the world around you.</p>
+    </div>
+    <div class="steps">
+      <div class="step-card spot reveal">
+        <svg class="icon step-mark" aria-hidden="true"><use href="#i-headphones"/></svg>
+        <div class="step-number" aria-hidden="true">1</div>
+        <h3 data-i18n="how_1_title">Connect Your Earbuds</h3>
+        <p data-i18n="how_1_desc">Pair any Bluetooth earbuds or AirPods with your smartphone. No proprietary hardware needed — use what you already own.</p>
+      </div>
+      <div class="step-card spot reveal">
+        <svg class="icon step-mark" aria-hidden="true"><use href="#i-camera"/></svg>
+        <div class="step-number" aria-hidden="true">2</div>
+        <h3 data-i18n="how_2_title">Point the Camera</h3>
+        <p data-i18n="how_2_desc">Hold your phone in front of you or use a chest-mounted holder. Our AI sees what you see in real time.</p>
+      </div>
+      <div class="step-card spot reveal">
+        <svg class="icon step-mark" aria-hidden="true"><use href="#i-volume"/></svg>
+        <div class="step-number" aria-hidden="true">3</div>
+        <h3 data-i18n="how_3_title">Hear Your World</h3>
+        <p data-i18n="how_3_desc">Receive instant spatial audio descriptions. Objects on your left sound in your left ear, obstacles ahead trigger alerts.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="section-header reveal">
+      <h2 data-i18n="feat_title">Powerful <span class="gradient-text">Features</span></h2>
+      <p data-i18n="feat_desc">Built from the ground up for accessibility, speed, and real-world reliability.</p>
+    </div>
+    <div class="features-grid">
+      <article class="feature wide spot reveal">
+        <div class="feature-body">
+          <div class="feature-icon cyan"><svg class="icon" aria-hidden="true"><use href="#i-headphones"/></svg></div>
+          <h3 data-i18n="feat_1_title">Spatial Audio Mapping</h3>
+          <p data-i18n="feat_1_desc">3D positional sound places objects exactly where they are in your field of view. Left, right, near, far — your ears become your eyes.</p>
+        </div>
+        <div class="feature-visual" aria-hidden="true">
+          <div class="radar radar-auto">
+            <span class="radar-ring" style="--s:40%; --o:0.55"></span>
+            <span class="radar-ring" style="--s:68%; --o:0.4"></span>
+            <span class="radar-ring" style="--s:96%; --o:0.25"></span>
+            <span class="radar-blip" data-pos="left"></span>
+            <span class="radar-blip" data-pos="center"></span>
+            <span class="radar-blip" data-pos="right"></span>
+            <span class="radar-listener"><svg class="icon"><use href="#i-headphones"/></svg></span>
+          </div>
+        </div>
+      </article>
+      <article class="feature spot reveal">
+        <div class="feature-icon purple"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg></div>
+        <h3 data-i18n="feat_2_title">Real-Time Processing</h3>
+        <p data-i18n="feat_2_desc">Sub-100ms latency means you get instant feedback. Walk confidently knowing the AI is keeping pace with every step.</p>
+      </article>
+      <article class="feature spot reveal">
+        <div class="feature-icon blue"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg></div>
+        <h3 data-i18n="feat_3_title">Obstacle Detection</h3>
+        <p data-i18n="feat_3_desc">Automatically identifies hazards — curbs, poles, stairs, traffic — and alerts you with directional audio warnings.</p>
+      </article>
+      <article class="feature wide spot reveal">
+        <div class="feature-body">
+          <div class="feature-icon pink"><svg class="icon" aria-hidden="true"><use href="#i-message"/></svg></div>
+          <h3 data-i18n="feat_4_title">Smart Narration</h3>
+          <p data-i18n="feat_4_desc">Natural language descriptions of scenes, text reading (OCR), face recognition, and color detection — all spoken aloud.</p>
+        </div>
+        <div class="feature-visual fv-caption" aria-hidden="true">
+          <div class="fv-bubble">
+            <svg class="icon"><use href="#i-volume"/></svg>
+            <span class="fv-lines"><span class="fv-line" style="--w:88%"></span><span class="fv-line" style="--w:62%; --d:0.4s"></span></span>
+          </div>
+          <div class="fv-bubble">
+            <svg class="icon"><use href="#i-volume"/></svg>
+            <span class="fv-lines"><span class="fv-line" style="--w:74%; --d:0.8s"></span><span class="fv-line" style="--w:48%; --d:1.2s"></span></span>
+          </div>
+        </div>
+      </article>
+      <article class="feature half spot reveal">
+        <div class="feature-icon cyan"><svg class="icon" aria-hidden="true"><use href="#i-battery"/></svg></div>
+        <h3 data-i18n="feat_5_title">All-Day Battery</h3>
+        <p data-i18n="feat_5_desc">Optimized to run efficiently on your phone. No extra devices to charge — just your everyday smartphone and earbuds.</p>
+      </article>
+      <article class="feature half spot reveal">
+        <div class="feature-icon purple"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></div>
+        <h3 data-i18n="feat_6_title">Privacy First</h3>
+        <p data-i18n="feat_6_desc">All processing happens on-device. Your visual data never leaves your phone. No cloud, no servers, no compromises.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="demo" id="demo">
+    <div class="section-header reveal">
+      <h2 data-i18n="demo_title">Experience the <span class="gradient-text">Sound</span></h2>
+      <p data-i18n="demo_desc">See how Blind AI translates the visual world into audio guidance.</p>
+    </div>
+    <div class="demo-container reveal">
+      <div class="demo-visual">
+        <div class="demo-stage" aria-hidden="true">
+          <div class="radar" id="demoRadar">
+            <span class="radar-ring" style="--s:40%; --o:0.55"></span>
+            <span class="radar-ring" style="--s:68%; --o:0.4"></span>
+            <span class="radar-ring" style="--s:96%; --o:0.25"></span>
+            <span class="radar-blip" data-pos="left"></span>
+            <span class="radar-blip" data-pos="center"></span>
+            <span class="radar-blip" data-pos="right"></span>
+            <span class="radar-label" data-pos="left" data-i18n="demo_left">Left</span>
+            <span class="radar-label" data-pos="center" data-i18n="demo_center">Ahead</span>
+            <span class="radar-label" data-pos="right" data-i18n="demo_right">Right</span>
+            <span class="radar-listener"><svg class="icon"><use href="#i-headphones"/></svg></span>
+          </div>
+          <div class="sound-wave-container" id="soundWave"></div>
+        </div>
+        <div class="demo-panel">
+          <ol class="demo-cues" id="demoCues"></ol>
+          <button class="btn-primary demo-play" id="demoPlay">
+            <svg class="icon solid icon-play" aria-hidden="true"><use href="#i-play"/></svg>
+            <svg class="icon solid icon-stop" aria-hidden="true"><use href="#i-stop"/></svg>
+            <span id="demoPlayLabel" data-i18n="demo_play">Play audio demo</span>
+          </button>
+          <p class="demo-hint" data-i18n="demo_hint">Put on headphones — each cue plays from its own direction.</p>
+        </div>
+      </div>
+      <div class="demo-controls">
+        <div class="demo-scenarios">
+          <button class="scenario-btn active" data-scene="street" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-street"/></svg><span data-i18n="demo_scene_street">Street Walking</span></button>
+          <button class="scenario-btn" data-scene="home" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg><span data-i18n="demo_scene_home">Indoor Navigation</span></button>
+          <button class="scenario-btn" data-scene="transit" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-bus"/></svg><span data-i18n="demo_scene_transit">Public Transit</span></button>
+          <button class="scenario-btn" data-scene="shopping" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-cart"/></svg><span data-i18n="demo_scene_shopping">Shopping</span></button>
+        </div>
+        <div class="demo-status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="demoStatus" role="status">Listening to street environment...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="safety reveal" id="safety" role="note" aria-labelledby="safetyTitle">
+      <div class="safety-icon" aria-hidden="true"><svg class="icon"><use href="#i-shield"/></svg></div>
+      <div>
+        <h3 id="safetyTitle" data-i18n="safety_title">Safety notice</h3>
+        <p class="safety-lead" data-i18n="safety_lead">Blind AI is an assistive aid, not a replacement for your primary mobility tools.</p>
+        <ul>
+          <li data-i18n="safety_1">Keep using your white cane or guide dog — Blind AI adds to them, it does not replace them.</li>
+          <li data-i18n="safety_2">No system detects everything. Poor lighting, bad weather, glass surfaces or fast-moving vehicles can be missed.</li>
+          <li data-i18n="safety_3">Blind AI is still a prototype: its accuracy and features are being tested and improved.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="testimonials">
+    <div class="section-header reveal">
+      <h2 data-i18n="test_title">Loved by the <span class="gradient-text">Community</span></h2>
+      <p data-i18n="test_desc">Real stories from real users who navigate the world differently now.</p>
+    </div>
+    <div class="testimonials-grid">
+      <figure class="testimonial spot spot-purple reveal">
+        <div class="testimonial-stars" role="img" aria-label="Rated 5 out of 5" data-i18n-aria-label="aria_rating">
+          <svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg>
+        </div>
+        <blockquote class="testimonial-text" data-i18n="test_1_text">"Blind AI has given me back my independence. I can walk to the grocery store alone for the first time in five years. The spatial audio is incredibly intuitive — I just know where things are."</blockquote>
+        <figcaption class="testimonial-author">
+          <div class="testimonial-avatar" aria-hidden="true">MK</div>
+          <div>
+            <div class="testimonial-name">Marcus K.</div>
+            <div class="testimonial-role" data-i18n="test_1_role">Low vision user, Chicago</div>
+          </div>
+        </figcaption>
+      </figure>
+      <figure class="testimonial spot spot-purple reveal">
+        <div class="testimonial-stars" role="img" aria-label="Rated 5 out of 5" data-i18n-aria-label="aria_rating">
+          <svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg>
+        </div>
+        <blockquote class="testimonial-text" data-i18n="test_2_text">"As someone who lost their sight recently, this app was a lifeline. The obstacle detection caught a low-hanging branch I would have walked right into. It feels like having a guide dog in your pocket."</blockquote>
+        <figcaption class="testimonial-author">
+          <div class="testimonial-avatar" aria-hidden="true">SR</div>
+          <div>
+            <div class="testimonial-name">Sarah R.</div>
+            <div class="testimonial-role" data-i18n="test_2_role">Blind user, London</div>
+          </div>
+        </figcaption>
+      </figure>
+      <figure class="testimonial spot spot-purple reveal">
+        <div class="testimonial-stars" role="img" aria-label="Rated 5 out of 5" data-i18n-aria-label="aria_rating">
+          <svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg><svg class="icon solid" aria-hidden="true"><use href="#i-star"/></svg>
+        </div>
+        <blockquote class="testimonial-text" data-i18n="test_3_text">"I use this with my students and the results are remarkable. The text-to-speech for reading signs and menus is fast and accurate. It's not just an app — it's a movement."</blockquote>
+        <figcaption class="testimonial-author">
+          <div class="testimonial-avatar" aria-hidden="true">JL</div>
+          <div>
+            <div class="testimonial-name">Dr. James L.</div>
+            <div class="testimonial-role" data-i18n="test_3_role">Orientation &amp; Mobility Specialist</div>
+          </div>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="roadmap" id="roadmap">
+    <div class="section-header reveal">
+      <h2 data-i18n="road_title">Our <span class="gradient-text">Roadmap</span></h2>
+      <p data-i18n="road_desc">Where Blind AI stands today and what comes next.</p>
+    </div>
+    <ol class="road reveal">
+      <li class="road-step is-done">
+        <span class="road-node" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span>
+        <span class="road-status" data-i18n="road_done">Completed</span>
+        <h3 data-i18n="road_1_title">Research &amp; concept</h3>
+        <p data-i18n="road_1_desc">We studied everyday navigation challenges and shaped the idea behind Blind AI.</p>
+      </li>
+      <li class="road-step is-current" aria-current="step">
+        <span class="road-node" aria-hidden="true">2</span>
+        <span class="road-status" data-i18n="road_now">We are here</span>
+        <h3 data-i18n="road_2_title">Prototype</h3>
+        <p data-i18n="road_2_desc">Building and testing the first working device.</p>
+      </li>
+      <li class="road-step">
+        <span class="road-node" aria-hidden="true">3</span>
+        <span class="road-status" data-i18n="road_next">Next</span>
+        <h3 data-i18n="road_3_title">Pilot with early users</h3>
+        <p data-i18n="road_3_desc">The first 10 users try Blind AI in daily life, and their feedback shapes the final product.</p>
+      </li>
+      <li class="road-step">
+        <span class="road-node" aria-hidden="true">4</span>
+        <span class="road-status" data-i18n="road_planned">Planned</span>
+        <h3 data-i18n="road_4_title">Production &amp; delivery</h3>
+        <p data-i18n="road_4_desc">Finalizing the device and shipping the first orders.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="pricing" id="pricing">
+    <div class="section-header reveal">
+      <h2 data-i18n="price_title">One Device. <span class="gradient-text">One Price.</span></h2>
+      <p data-i18n="price_desc">Own your independence outright — no subscriptions, no recurring fees. Just one device that changes how you experience the world.</p>
+    </div>
+    <div class="pricing-grid single">
+      <div class="pricing-card popular border-beam reveal">
+        <div class="popular-badge" data-i18n="price_badge">Blind AI Device</div>
+        <h3>Blind AI</h3>
+        <div class="price">$1,000<span data-i18n="price_onetime">one-time</span></div>
+        <p data-i18n="price_tagline">Everything you need to navigate the world with confidence — yours to keep, forever.</p>
+        <ul class="pricing-features">
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_1">Spatial audio mapping</span></li>
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_2">Real-time obstacle detection</span></li>
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_3">Smart scene narration &amp; OCR</span></li>
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_4">Face &amp; color recognition</span></li>
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_5">All-day battery life</span></li>
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_6">On-device privacy — no cloud</span></li>
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_7">Free lifetime software updates</span></li>
+          <li><svg class="icon check" aria-hidden="true"><use href="#i-check"/></svg> <span data-i18n="price_feat_8">1-year warranty &amp; support</span></li>
+        </ul>
+        <button class="btn-primary" style="width:100%;" data-i18n="price_btn" onclick="openContactModal('Blind AI - Order request')">Order Now</button>
+      </div>
+    </div>
+
+    <div class="early-bird reveal" id="early-access">
+      <div class="early-bird-badge" data-i18n="early_badge">Limited Time</div>
+      <div class="early-bird-content">
+        <h3 data-i18n="early_title">Early Bird Offer</h3>
+        <p data-i18n="early_desc">Be one of the first 10 users and save <strong>$200</strong> on your Blind AI device.</p>
+        <div class="early-bird-price">
+          <span class="old-price">$1,000</span>
+          <span class="new-price">$800</span>
+          <span class="discount-pill">−20%</span>
+        </div>
+        <div class="early-bird-spots" data-i18n="early_spots">Only a few spots left out of 10</div>
+        <button class="btn-primary" data-i18n="early_btn" onclick="openContactModal('Blind AI - Early bird request')">Claim Your Spot</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="orgs" id="organizations">
+    <div class="section-header reveal">
+      <h2 data-i18n="org_title">For <span class="gradient-text">Organizations</span></h2>
+      <p data-i18n="org_desc">Schools, associations and institutions that support blind and low-vision people can bring Blind AI to their community.</p>
+    </div>
+    <div class="org-grid">
+      <article class="org-card spot reveal">
+        <div class="feature-icon cyan"><svg class="icon" aria-hidden="true"><use href="#i-school"/></svg></div>
+        <h3 data-i18n="org_1_title">Schools &amp; universities</h3>
+        <p data-i18n="org_1_desc">Give students more independence on campus and on the way to class.</p>
+      </article>
+      <article class="org-card spot reveal">
+        <div class="feature-icon purple"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg></div>
+        <h3 data-i18n="org_2_title">Associations &amp; NGOs</h3>
+        <p data-i18n="org_2_desc">Equip the members of your community with the device.</p>
+      </article>
+      <article class="org-card spot reveal">
+        <div class="feature-icon pink"><svg class="icon" aria-hidden="true"><use href="#i-heart"/></svg></div>
+        <h3 data-i18n="org_3_title">Rehabilitation centers</h3>
+        <p data-i18n="org_3_desc">Support orientation and mobility training.</p>
+      </article>
+      <article class="org-card spot reveal">
+        <div class="feature-icon blue"><svg class="icon" aria-hidden="true"><use href="#i-building"/></svg></div>
+        <h3 data-i18n="org_4_title">Companies &amp; public institutions</h3>
+        <p data-i18n="org_4_desc">Make workplaces and services more accessible.</p>
+      </article>
+    </div>
+    <div class="org-panel reveal">
+      <ul class="org-benefits">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="org_b1"><strong>Volume orders</strong> — pricing for several devices is agreed individually</span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="org_b2"><strong>Training</strong> — setup help and onboarding for staff and users</span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span data-i18n="org_b3"><strong>Pilot program</strong> — try Blind AI with a small group first</span></li>
+      </ul>
+      <div class="org-actions">
+        <button class="btn-primary" data-i18n="org_btn" onclick="openContactModal('Blind AI - Organization inquiry')">Request a quote</button>
+        <a class="btn-secondary" href="https://wa.me/994516210763" data-wa="wa_text_org" target="_blank" rel="noopener">
+          <svg class="icon solid icon-wa" aria-hidden="true"><use href="#i-whatsapp"/></svg>
+          <span data-i18n="wa_label">Chat on WhatsApp</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="faq" id="faq">
+    <div class="section-header reveal">
+      <h2 data-i18n="faq_title">Frequently Asked <span class="gradient-text">Questions</span></h2>
+      <p data-i18n="faq_desc">Short answers to what people ask us most.</p>
+    </div>
+    <div class="faq-list">
+      <details class="faq-item reveal">
+        <summary><span data-i18n="faq_1_q">Does Blind AI replace a white cane or guide dog?</span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="faq-answer"><p data-i18n="faq_1_a">No. Blind AI is an assistive aid: it adds information about your surroundings. Keep using your cane or guide dog together with it.</p></div>
+      </details>
+      <details class="faq-item reveal">
+        <summary><span data-i18n="faq_2_q">What stage is Blind AI at right now?</span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="faq-answer"><p data-i18n="faq_2_a">We are building and testing the prototype. Next comes a pilot with the first 10 users, then production and delivery.</p></div>
+      </details>
+      <details class="faq-item reveal">
+        <summary><span data-i18n="faq_3_q">How much does it cost?</span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="faq-answer"><p data-i18n="faq_3_a">$1,000 as a one-time payment, with no subscription or monthly fees. The first 10 users get it for $800.</p></div>
+      </details>
+      <details class="faq-item reveal">
+        <summary><span data-i18n="faq_4_q">Is my camera feed sent to the internet?</span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="faq-answer"><p data-i18n="faq_4_a">No. Camera, image and audio processing happens on the device itself. Your camera feed is not uploaded to our servers or to anyone else.</p></div>
+      </details>
+      <details class="faq-item reveal">
+        <summary><span data-i18n="faq_5_q">Is there a warranty?</span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="faq-answer"><p data-i18n="faq_5_a">Yes. The device comes with a 1-year warranty and support, and software updates are free for life.</p></div>
+      </details>
+      <details class="faq-item reveal">
+        <summary><span data-i18n="faq_6_q">Can an organization order several devices?</span><svg class="icon" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="faq-answer"><p data-i18n="faq_6_a">Yes. Pricing for several devices is agreed individually, and we can help with training and a pilot program. Request a quote or write to us on WhatsApp.</p></div>
+      </details>
+    </div>
+    <div class="faq-more reveal">
+      <p data-i18n="faq_more">Didn't find your answer?</p>
+      <a class="btn-secondary" href="https://wa.me/994516210763" data-wa="wa_text" target="_blank" rel="noopener">
+        <svg class="icon solid icon-wa" aria-hidden="true"><use href="#i-whatsapp"/></svg>
+        <span data-i18n="wa_label">Chat on WhatsApp</span>
+      </a>
+      <button class="btn-secondary" data-i18n="cta_btn" onclick="openContactModal()">Contact Our Team</button>
+    </div>
+  </section>
+
+  <section class="cta" id="contact">
+    <div class="cta-dots" aria-hidden="true"></div>
+    <h2 class="reveal" data-i18n="cta_title">Ready to Hear Your World?</h2>
+    <p class="reveal" data-i18n="cta_desc">Join thousands who are already navigating with confidence.</p>
+    <div class="hero-buttons reveal">
+      <button class="btn-primary" data-i18n="nav_cta" onclick="scrollToId('early-access')">Get Early Access</button>
+      <button class="btn-secondary" data-i18n="cta_btn" onclick="openContactModal()">Contact Our Team</button>
+      <a class="btn-secondary" href="https://wa.me/994516210763" data-wa="wa_text" target="_blank" rel="noopener">
+        <svg class="icon solid icon-wa" aria-hidden="true"><use href="#i-whatsapp"/></svg>
+        <span data-i18n="wa_label">Chat on WhatsApp</span>
+      </a>
+    </div>
+  </section>
+
+  </main>
+
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="nav-logo footer-logo" href="/" onclick="goToHome(); return false;">
+          <img src="logo-96.webp" alt="" width="36" height="36" loading="lazy">
+          <span>Blind AI</span>
+        </a>
+        <p data-i18n="footer_tagline">See the world through sound.</p>
+        <a class="footer-contact" href="https://wa.me/994516210763" data-wa="wa_text" target="_blank" rel="noopener">
+          <svg class="icon solid icon-wa" aria-hidden="true"><use href="#i-whatsapp"/></svg>
+          <span class="sr-only">WhatsApp:</span>
+          <span>+994 51 621 07 63</span>
+        </a>
+      </div>
+      <nav class="footer-col" aria-labelledby="footerProduct">
+        <h2 id="footerProduct" data-i18n="footer_product">Product</h2>
+        <ul>
+          <li><a href="/how" data-i18n="nav_how" onclick="return goToSection(event, 'how')">How It Works</a></li>
+          <li><a href="/features" data-i18n="nav_features" onclick="return goToSection(event, 'features')">Features</a></li>
+          <li><a href="/demo" data-i18n="nav_demo" onclick="return goToSection(event, 'demo')">Demo</a></li>
+          <li><a href="/pricing" data-i18n="nav_pricing" onclick="return goToSection(event, 'pricing')">Pricing</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-col" aria-labelledby="footerCompany">
+        <h2 id="footerCompany" data-i18n="footer_company">Company</h2>
+        <ul>
+          <li><a href="/roadmap" data-i18n="footer_roadmap" onclick="return goToSection(event, 'roadmap')">Roadmap</a></li>
+          <li><a href="/organizations" data-i18n="footer_orgs" onclick="return goToSection(event, 'organizations')">For Organizations</a></li>
+          <li><a href="/contact" data-i18n="nav_contact" onclick="return goToSection(event, 'contact')">Contact</a></li>
+        </ul>
+      </nav>
+      <nav class="footer-col" aria-labelledby="footerHelp">
+        <h2 id="footerHelp" data-i18n="footer_help">Help</h2>
+        <ul>
+          <li><a href="/faq" data-i18n="footer_faq" onclick="return goToSection(event, 'faq')">FAQ</a></li>
+          <li><a href="/safety" data-i18n="footer_safety" onclick="return goToSection(event, 'safety')">Safety</a></li>
+          <li><a href="#" data-i18n="footer_accessibility" data-open-a11y onclick="openA11yPanel(); return false;">Accessibility</a></li>
+          <li><a href="#" data-i18n="footer_privacy" onclick="openPrivacyModal(); return false;">Privacy</a></li>
+          <li><a href="#" data-i18n="footer_support" onclick="openContactModal(); return false;">Support</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="footer-bottom">
+      <p data-i18n="footer_copyright">© 2026 Blind AI, Inc. Built with care for the visually impaired community.</p>
+    </div>
+  </footer>
+
+  <a class="wa-fab" href="https://wa.me/994516210763" data-wa="wa_text" target="_blank" rel="noopener">
+    <svg class="icon solid" aria-hidden="true"><use href="#i-whatsapp"/></svg>
+    <span data-i18n="wa_label">Chat on WhatsApp</span>
+  </a>
+
+  <button class="a11y-fab" id="a11yToggle" aria-expanded="false" aria-controls="a11yPanel" aria-label="Accessibility settings" data-i18n-aria-label="a11y_open">
+    <svg class="icon" aria-hidden="true"><use href="#i-access"/></svg>
+  </button>
+
+  <div class="a11y-panel" id="a11yPanel" role="dialog" aria-labelledby="a11yTitle" hidden>
+    <div class="a11y-head">
+      <h2 id="a11yTitle" data-i18n="footer_accessibility">Accessibility</h2>
+      <button type="button" class="modal-close" aria-label="Close" data-i18n-aria-label="aria_close" onclick="setA11yPanel(false); a11yToggle.focus();"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div>
+      <span class="a11y-label" id="a11yTextLabel" data-i18n="a11y_text">Text size</span>
+      <div class="a11y-seg" role="group" aria-labelledby="a11yTextLabel">
+        <button type="button" data-text-size="md" aria-pressed="true">100%</button>
+        <button type="button" data-text-size="lg" aria-pressed="false">115%</button>
+        <button type="button" data-text-size="xl" aria-pressed="false">130%</button>
+      </div>
+    </div>
+    <button type="button" class="a11y-switch" role="switch" aria-checked="false" data-a11y-switch="contrast">
+      <span data-i18n="a11y_contrast">High contrast</span>
+      <span class="a11y-knob" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="a11y-switch" role="switch" aria-checked="false" data-a11y-switch="calm">
+      <span data-i18n="a11y_motion">Stop animations</span>
+      <span class="a11y-knob" aria-hidden="true"></span>
+    </button>
+    <button type="button" class="btn-primary a11y-read" id="a11yRead">
+      <svg class="icon solid icon-play" aria-hidden="true"><use href="#i-play"/></svg>
+      <svg class="icon solid icon-stop" aria-hidden="true"><use href="#i-stop"/></svg>
+      <span id="a11yReadLabel" data-i18n="a11y_read">Read page aloud</span>
+    </button>
+    <p class="a11y-status" id="a11yStatus" role="status"></p>
+    <button type="button" class="a11y-reset" id="a11yReset" data-i18n="a11y_reset">Reset</button>
+  </div>
+
+  <div class="modal-overlay" id="contactModalOverlay">
+    <form class="modal-card" id="contactForm" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle" novalidate onsubmit="submitContactModal(); return false;">
+      <div class="modal-header">
+        <h3 id="contactModalTitle" data-i18n="contact_title">Contact Our Team</h3>
+        <button type="button" class="modal-close" onclick="closeContactModal()" aria-label="Close" data-i18n-aria-label="aria_close"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <label class="modal-label" for="contactEmail" data-i18n="contact_email_label">Your email</label>
+      <input class="modal-input" type="email" id="contactEmail" placeholder="you@example.com" autocomplete="email" required data-autofocus>
+      <label class="modal-label" for="contactMessage" data-i18n="contact_msg_label">How can we help you?</label>
+      <textarea class="modal-textarea" id="contactMessage" data-i18n-placeholder="contact_msg_placeholder" placeholder="We welcome your thoughts" required></textarea>
+      <p class="modal-hint" data-i18n="contact_hint">You can also upload or paste images for feedback.</p>
+      <label class="modal-upload" for="contactImageInput">
+        <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>
+        <input class="sr-only" type="file" id="contactImageInput" accept="image/*" aria-label="Attach an image" data-i18n-aria-label="aria_upload">
+      </label>
+      <p class="modal-status" id="contactStatus" role="status"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" data-i18n="contact_cancel" onclick="closeContactModal()">Cancel</button>
+        <button type="submit" class="btn-primary" id="contactSubmitBtn" data-i18n="contact_submit">Submit</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-overlay" id="privacyModalOverlay">
+    <div class="modal-card modal-scroll" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
+      <div class="modal-header">
+        <h3 id="privacyModalTitle" data-i18n="privacy_title">Privacy Policy</h3>
+        <button type="button" class="modal-close" onclick="closePrivacyModal()" aria-label="Close" data-i18n-aria-label="aria_close"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <div class="modal-body" tabindex="0">
+        <p class="modal-updated" data-i18n="privacy_updated">Last updated: July 2026</p>
+
+        <h4 data-i18n="privacy_h1">On-Device Processing</h4>
+        <p data-i18n="privacy_p1">Blind AI performs all camera, image, and audio processing directly on your device. Visual data captured by your camera is never uploaded to our servers or any third party, and is not stored beyond the current session unless you explicitly save a clip.</p>
+
+        <h4 data-i18n="privacy_h2">Information We Collect</h4>
+        <p data-i18n="privacy_p2">We collect only what's needed to operate your account and device: your name, email address, shipping address, and device diagnostics (crash logs, battery, firmware version). We do not collect or store the contents of your camera feed.</p>
+
+        <h4 data-i18n="privacy_h3">Payments &amp; Card Data</h4>
+        <p data-i18n="privacy_p3">Orders are processed through a PCI-DSS compliant payment processor. Blind AI never sees or stores your full credit card number, CVV, or expiry date — this data goes straight from your browser to the payment processor over an encrypted connection and is tokenized before it ever reaches us.</p>
+
+        <h4 data-i18n="privacy_h4">Encryption &amp; Transport Security</h4>
+        <p data-i18n="privacy_p4">All data transmitted between your browser or device and our servers is encrypted in transit using TLS/SSL. Sensitive fields (payment tokens, account credentials) are also encrypted at rest.</p>
+
+        <h4 data-i18n="privacy_h5">Application Security</h4>
+        <p data-i18n="privacy_p5">We follow secure development practices to protect against common web vulnerabilities, including input validation and parameterized queries to prevent injection attacks, regular dependency and security audits, and access controls limiting who can view customer data internally.</p>
+
+        <h4 data-i18n="privacy_h6">Cookies</h4>
+        <p data-i18n="privacy_p6">We use minimal, functional cookies to keep you logged in and remember preferences. We do not use third-party advertising trackers.</p>
+
+        <h4 data-i18n="privacy_h7">Your Rights</h4>
+        <p data-i18n="privacy_p7">You can request a copy of your data, ask us to correct it, or request deletion of your account and associated data at any time by contacting our support team.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" data-i18n="privacy_gotit" onclick="closePrivacyModal()">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const translations = {
+      en: {
+        nav_how: "How It Works", nav_features: "Features", nav_demo: "Demo", nav_pricing: "Pricing", nav_contact: "Contact", nav_cta: "Get Early Access",
+        hero_badge: "Prototype stage — early access is open",
+        hero_title: 'See the World<br><span class="gradient-text">Through Sound</span>',
+        hero_desc: "Blind AI transforms your surroundings into rich, spatial audio. Using just your camera and earbuds, navigate the world with confidence — no special hardware required.",
+        hero_btn_trial: "Start Trial", hero_btn_demo: "Watch Demo",
+        how_title: 'How It <span class="gradient-text">Works</span>',
+        how_desc: "Three simple steps to a new way of experiencing the world around you.",
+        how_1_title: "Connect Your Earbuds", how_1_desc: "Pair any Bluetooth earbuds or AirPods with your smartphone. No proprietary hardware needed — use what you already own.",
+        how_2_title: "Point the Camera", how_2_desc: "Hold your phone in front of you or use a chest-mounted holder. Our AI sees what you see in real time.",
+        how_3_title: "Hear Your World", how_3_desc: "Receive instant spatial audio descriptions. Objects on your left sound in your left ear, obstacles ahead trigger alerts.",
+        feat_title: 'Powerful <span class="gradient-text">Features</span>',
+        feat_desc: "Built from the ground up for accessibility, speed, and real-world reliability.",
+        feat_1_title: "Spatial Audio Mapping", feat_1_desc: "3D positional sound places objects exactly where they are in your field of view. Left, right, near, far — your ears become your eyes.",
+        feat_2_title: "Real-Time Processing", feat_2_desc: "Sub-100ms latency means you get instant feedback. Walk confidently knowing the AI is keeping pace with every step.",
+        feat_3_title: "Obstacle Detection", feat_3_desc: "Automatically identifies hazards — curbs, poles, stairs, traffic — and alerts you with directional audio warnings.",
+        feat_4_title: "Smart Narration", feat_4_desc: "Natural language descriptions of scenes, text reading (OCR), face recognition, and color detection — all spoken aloud.",
+        feat_5_title: "All-Day Battery", feat_5_desc: "Optimized to run efficiently on your phone. No extra devices to charge — just your everyday smartphone and earbuds.",
+        feat_6_title: "Privacy First", feat_6_desc: "All processing happens on-device. Your visual data never leaves your phone. No cloud, no servers, no compromises.",
+        demo_title: 'Experience the <span class="gradient-text">Sound</span>',
+        demo_desc: "See how Blind AI translates the visual world into audio guidance.",
+        demo_scene_street: "Street Walking", demo_scene_home: "Indoor Navigation", demo_scene_transit: "Public Transit", demo_scene_shopping: "Shopping",
+        test_title: 'Loved by the <span class="gradient-text">Community</span>',
+        test_desc: "Real stories from real users who navigate the world differently now.",
+        test_1_text: '"Blind AI has given me back my independence. I can walk to the grocery store alone for the first time in five years. The spatial audio is incredibly intuitive — I just know where things are."',
+        test_1_role: "Low vision user, Chicago",
+        test_2_text: '"As someone who lost their sight recently, this app was a lifeline. The obstacle detection caught a low-hanging branch I would have walked right into. It feels like having a guide dog in your pocket."',
+        test_2_role: "Blind user, London",
+        test_3_text: '"I use this with my students and the results are remarkable. The text-to-speech for reading signs and menus is fast and accurate. It\'s not just an app — it\'s a movement."',
+        test_3_role: "Orientation & Mobility Specialist",
+        price_title: 'One Device. <span class="gradient-text">One Price.</span>',
+        price_desc: "Own your independence outright — no subscriptions, no recurring fees. Just one device that changes how you experience the world.",
+        price_badge: "Blind AI Device", price_onetime: "one-time",
+        price_tagline: "Everything you need to navigate the world with confidence — yours to keep, forever.",
+        price_feat_1: "Spatial audio mapping", price_feat_2: "Real-time obstacle detection", price_feat_3: "Smart scene narration & OCR",
+        price_feat_4: "Face & color recognition", price_feat_5: "All-day battery life", price_feat_6: "On-device privacy — no cloud",
+        price_feat_7: "Free lifetime software updates", price_feat_8: "1-year warranty & support", price_btn: "Order Now",
+        early_badge: "Limited Time", early_title: "Early Bird Offer",
+        early_desc: 'Be one of the first 10 users and save <strong>$200</strong> on your Blind AI device.',
+        early_spots: "Only a few spots left out of 10", early_btn: "Claim Your Spot",
+        cta_title: "Ready to Hear Your World?", cta_desc: "Join thousands who are already navigating with confidence.", cta_btn: "Contact Our Team",
+        footer_privacy: "Privacy", footer_accessibility: "Accessibility", footer_support: "Support",
+        footer_copyright: "© 2026 Blind AI, Inc. Built with care for the visually impaired community.",
+        contact_title: "Contact Our Team", contact_email_label: "Your email", contact_msg_label: "How can we help you?",
+        contact_msg_placeholder: "We welcome your thoughts", contact_hint: "You can also upload or paste images for feedback.",
+        contact_cancel: "Cancel", contact_submit: "Submit",
+        contact_err_fill: "Please fill in your email and message.", contact_sending: "Sending...",
+        contact_success: "Thanks! Your message has been sent.", contact_err_generic: "Something went wrong. Please try again.",
+        contact_err_network: "Network error. Please try again.",
+        privacy_title: "Privacy Policy", privacy_updated: "Last updated: July 2026",
+        privacy_h1: "On-Device Processing",
+        privacy_p1: "Blind AI performs all camera, image, and audio processing directly on your device. Visual data captured by your camera is never uploaded to our servers or any third party, and is not stored beyond the current session unless you explicitly save a clip.",
+        privacy_h2: "Information We Collect",
+        privacy_p2: "We collect only what's needed to operate your account and device: your name, email address, shipping address, and device diagnostics (crash logs, battery, firmware version). We do not collect or store the contents of your camera feed.",
+        privacy_h3: "Payments &amp; Card Data",
+        privacy_p3: "Orders are processed through a PCI-DSS compliant payment processor. Blind AI never sees or stores your full credit card number, CVV, or expiry date — this data goes straight from your browser to the payment processor over an encrypted connection and is tokenized before it ever reaches us.",
+        privacy_h4: "Encryption &amp; Transport Security",
+        privacy_p4: "All data transmitted between your browser or device and our servers is encrypted in transit using TLS/SSL. Sensitive fields (payment tokens, account credentials) are also encrypted at rest.",
+        privacy_h5: "Application Security",
+        privacy_p5: "We follow secure development practices to protect against common web vulnerabilities, including input validation and parameterized queries to prevent injection attacks, regular dependency and security audits, and access controls limiting who can view customer data internally.",
+        privacy_h6: "Cookies",
+        privacy_p6: "We use minimal, functional cookies to keep you logged in and remember preferences. We do not use third-party advertising trackers.",
+        privacy_h7: "Your Rights",
+        privacy_p7: "You can request a copy of your data, ask us to correct it, or request deletion of your account and associated data at any time by contacting our support team.",
+        privacy_gotit: "Got It",
+        skip_link: "Skip to main content",
+        aria_menu: "Menu", aria_lang: "Language", aria_close: "Close", aria_upload: "Attach an image",
+        aria_stats: "Key facts", aria_rating: "Rated 5 out of 5",
+        stat_1: "Response latency", stat_1_unit: "ms", stat_2: "Processed on-device", stat_3: "Monthly fees",
+        stat_4: "Warranty & support", stat_4_unit: "year",
+        demo_left: "Left", demo_center: "Ahead", demo_right: "Right",
+        demo_play: "Play audio demo", demo_stop: "Stop",
+        demo_hint: "Put on headphones — each cue plays from its own direction.",
+        contact_err_email: "Please enter a valid email address.",
+        safety_title: "Safety notice",
+        safety_lead: "Blind AI is an assistive aid, not a replacement for your primary mobility tools.",
+        safety_1: "Keep using your white cane or guide dog — Blind AI adds to them, it does not replace them.",
+        safety_2: "No system detects everything. Poor lighting, bad weather, glass surfaces or fast-moving vehicles can be missed.",
+        safety_3: "Blind AI is still a prototype: its accuracy and features are being tested and improved.",
+        road_title: 'Our <span class="gradient-text">Roadmap</span>',
+        road_desc: "Where Blind AI stands today and what comes next.",
+        road_done: "Completed", road_now: "We are here", road_next: "Next", road_planned: "Planned",
+        road_1_title: "Research & concept", road_1_desc: "We studied everyday navigation challenges and shaped the idea behind Blind AI.",
+        road_2_title: "Prototype", road_2_desc: "Building and testing the first working device.",
+        road_3_title: "Pilot with early users", road_3_desc: "The first 10 users try Blind AI in daily life, and their feedback shapes the final product.",
+        road_4_title: "Production & delivery", road_4_desc: "Finalizing the device and shipping the first orders.",
+        org_title: 'For <span class="gradient-text">Organizations</span>',
+        org_desc: "Schools, associations and institutions that support blind and low-vision people can bring Blind AI to their community.",
+        org_1_title: "Schools & universities", org_1_desc: "Give students more independence on campus and on the way to class.",
+        org_2_title: "Associations & NGOs", org_2_desc: "Equip the members of your community with the device.",
+        org_3_title: "Rehabilitation centers", org_3_desc: "Support orientation and mobility training.",
+        org_4_title: "Companies & public institutions", org_4_desc: "Make workplaces and services more accessible.",
+        org_b1: '<strong>Volume orders</strong> — pricing for several devices is agreed individually',
+        org_b2: '<strong>Training</strong> — setup help and onboarding for staff and users',
+        org_b3: '<strong>Pilot program</strong> — try Blind AI with a small group first',
+        org_btn: "Request a quote",
+        wa_label: "Chat on WhatsApp",
+        wa_text: "Hello! I'm interested in Blind AI.",
+        wa_text_org: "Hello! I'm writing on behalf of an organization about Blind AI.",
+        footer_roadmap: "Roadmap", footer_orgs: "For Organizations", footer_safety: "Safety",
+        footer_tagline: "See the world through sound.",
+        footer_product: "Product", footer_company: "Company", footer_help: "Help", footer_faq: "FAQ",
+        faq_title: 'Frequently Asked <span class="gradient-text">Questions</span>',
+        faq_desc: "Short answers to what people ask us most.",
+        faq_1_q: "Does Blind AI replace a white cane or guide dog?",
+        faq_1_a: "No. Blind AI is an assistive aid: it adds information about your surroundings. Keep using your cane or guide dog together with it.",
+        faq_2_q: "What stage is Blind AI at right now?",
+        faq_2_a: "We are building and testing the prototype. Next comes a pilot with the first 10 users, then production and delivery.",
+        faq_3_q: "How much does it cost?",
+        faq_3_a: "$1,000 as a one-time payment, with no subscription or monthly fees. The first 10 users get it for $800.",
+        faq_4_q: "Is my camera feed sent to the internet?",
+        faq_4_a: "No. Camera, image and audio processing happens on the device itself. Your camera feed is not uploaded to our servers or to anyone else.",
+        faq_5_q: "Is there a warranty?",
+        faq_5_a: "Yes. The device comes with a 1-year warranty and support, and software updates are free for life.",
+        faq_6_q: "Can an organization order several devices?",
+        faq_6_a: "Yes. Pricing for several devices is agreed individually, and we can help with training and a pilot program. Request a quote or write to us on WhatsApp.",
+        faq_more: "Didn't find your answer?",
+        a11y_open: "Accessibility settings", a11y_text: "Text size", a11y_contrast: "High contrast", a11y_motion: "Stop animations",
+        a11y_read: "Read page aloud", a11y_read_stop: "Stop reading", a11y_reset: "Reset settings",
+        a11y_no_voice: "Your device has no voice for this language. Choose another language or install a voice in your system settings.",
+        a11y_no_speech: "Your browser cannot read text aloud."
+      },
+      ru: {
+        nav_how: "Как это работает", nav_features: "Возможности", nav_demo: "Демо", nav_pricing: "Цена", nav_contact: "Контакты", nav_cta: "Ранний доступ",
+        hero_badge: "Стадия прототипа — ранний доступ открыт",
+        hero_title: 'Видеть мир<br><span class="gradient-text">через звук</span>',
+        hero_desc: "Blind AI превращает окружающий мир в насыщенный пространственный звук. Используя только камеру и наушники, уверенно перемещайтесь по миру — без специального оборудования.",
+        hero_btn_trial: "Начать пробный период", hero_btn_demo: "Смотреть демо",
+        how_title: 'Как это <span class="gradient-text">работает</span>',
+        how_desc: "Три простых шага к новому способу восприятия окружающего мира.",
+        how_1_title: "Подключите наушники", how_1_desc: "Подключите любые Bluetooth-наушники или AirPods к смартфону. Никакого фирменного оборудования — используйте то, что у вас уже есть.",
+        how_2_title: "Направьте камеру", how_2_desc: "Держите телефон перед собой или используйте нагрудное крепление. Наш ИИ видит то же, что и вы, в реальном времени.",
+        how_3_title: "Услышьте свой мир", how_3_desc: "Получайте мгновенные пространственные звуковые описания. Объекты слева звучат в левом ухе, препятствия впереди вызывают предупреждения.",
+        feat_title: 'Мощные <span class="gradient-text">возможности</span>',
+        feat_desc: "Создано с нуля для доступности, скорости и надёжности в реальных условиях.",
+        feat_1_title: "Пространственное аудио", feat_1_desc: "3D-позиционный звук размещает объекты именно там, где они находятся в поле зрения. Слева, справа, ближе, дальше — ваши уши становятся вашими глазами.",
+        feat_2_title: "Обработка в реальном времени", feat_2_desc: "Задержка менее 100 мс означает мгновенную обратную связь. Идите уверенно, зная, что ИИ успевает за каждым шагом.",
+        feat_3_title: "Обнаружение препятствий", feat_3_desc: "Автоматически распознаёт опасности — бордюры, столбы, лестницы, движение — и предупреждает вас направленными звуковыми сигналами.",
+        feat_4_title: "Умное озвучивание", feat_4_desc: "Описания сцен на естественном языке, чтение текста (OCR), распознавание лиц и определение цвета — всё озвучивается вслух.",
+        feat_5_title: "Заряд на весь день", feat_5_desc: "Оптимизировано для эффективной работы на вашем телефоне. Никаких дополнительных устройств для зарядки — только ваш смартфон и наушники.",
+        feat_6_title: "Приватность прежде всего", feat_6_desc: "Вся обработка происходит на устройстве. Ваши визуальные данные никогда не покидают телефон. Никакого облака, никаких серверов, никаких компромиссов.",
+        demo_title: 'Испытайте <span class="gradient-text">звук</span>',
+        demo_desc: "Посмотрите, как Blind AI превращает визуальный мир в звуковые подсказки.",
+        demo_scene_street: "Прогулка по улице", demo_scene_home: "Навигация в помещении", demo_scene_transit: "Общественный транспорт", demo_scene_shopping: "Покупки",
+        test_title: 'Любим <span class="gradient-text">сообществом</span>',
+        test_desc: "Реальные истории реальных людей, которые теперь по-новому ориентируются в мире.",
+        test_1_text: '«Blind AI вернул мне независимость. Впервые за пять лет я могу один дойти до магазина. Пространственный звук невероятно интуитивен — я просто знаю, где что находится.»',
+        test_1_role: "Слабовидящий пользователь, Чикаго",
+        test_2_text: '«Для человека, недавно потерявшего зрение, это приложение стало спасением. Обнаружение препятствий уберегло меня от низко висящей ветки. Это как иметь собаку-поводыря в кармане.»',
+        test_2_role: "Незрячий пользователь, Лондон",
+        test_3_text: '«Я использую это со своими студентами, и результаты впечатляют. Озвучивание вывесок и меню быстрое и точное. Это не просто приложение — это движение.»',
+        test_3_role: "Специалист по ориентации и мобильности",
+        price_title: 'Одно устройство. <span class="gradient-text">Одна цена.</span>',
+        price_desc: "Обретите независимость полностью — без подписок и повторяющихся платежей. Всего одно устройство, которое меняет то, как вы воспринимаете мир.",
+        price_badge: "Устройство Blind AI", price_onetime: "разовый платёж",
+        price_tagline: "Всё необходимое, чтобы уверенно ориентироваться в мире — ваше навсегда.",
+        price_feat_1: "Пространственное аудио", price_feat_2: "Обнаружение препятствий в реальном времени", price_feat_3: "Умное озвучивание сцен и OCR",
+        price_feat_4: "Распознавание лиц и цвета", price_feat_5: "Заряд на весь день", price_feat_6: "Приватность на устройстве — без облака",
+        price_feat_7: "Бесплатные обновления ПО навсегда", price_feat_8: "1 год гарантии и поддержки", price_btn: "Заказать сейчас",
+        early_badge: "Ограниченное предложение", early_title: "Предложение для первых пользователей",
+        early_desc: 'Станьте одним из первых 10 пользователей и сэкономьте <strong>$200</strong> на устройстве Blind AI.',
+        early_spots: "Осталось всего несколько мест из 10", early_btn: "Занять место",
+        cta_title: "Готовы услышать свой мир?", cta_desc: "Присоединяйтесь к тысячам, кто уже уверенно ориентируется в пространстве.", cta_btn: "Связаться с нами",
+        footer_privacy: "Конфиденциальность", footer_accessibility: "Доступность", footer_support: "Поддержка",
+        footer_copyright: "© 2026 Blind AI, Inc. Создано с заботой о сообществе людей с нарушением зрения.",
+        contact_title: "Связаться с нами", contact_email_label: "Ваш email", contact_msg_label: "Чем мы можем помочь?",
+        contact_msg_placeholder: "Будем рады вашим мыслям", contact_hint: "Вы также можете загрузить или вставить изображения для обратной связи.",
+        contact_cancel: "Отмена", contact_submit: "Отправить",
+        contact_err_fill: "Пожалуйста, заполните email и сообщение.", contact_sending: "Отправка...",
+        contact_success: "Спасибо! Ваше сообщение отправлено.", contact_err_generic: "Что-то пошло не так. Попробуйте снова.",
+        contact_err_network: "Ошибка сети. Попробуйте снова.",
+        privacy_title: "Политика конфиденциальности", privacy_updated: "Последнее обновление: июль 2026",
+        privacy_h1: "Обработка на устройстве",
+        privacy_p1: "Blind AI выполняет всю обработку камеры, изображений и звука непосредственно на вашем устройстве. Визуальные данные, снятые камерой, никогда не загружаются на наши серверы или третьим лицам и не хранятся после окончания сеанса, если вы явно не сохраните клип.",
+        privacy_h2: "Какие данные мы собираем",
+        privacy_p2: "Мы собираем только то, что необходимо для работы вашего аккаунта и устройства: имя, email, адрес доставки и диагностику устройства (журналы сбоев, заряд батареи, версию прошивки). Мы не собираем и не храним содержимое видео с камеры.",
+        privacy_h3: "Платежи и данные карт",
+        privacy_p3: "Заказы обрабатываются через платёжного оператора, соответствующего стандарту PCI-DSS. Blind AI никогда не видит и не хранит полный номер вашей карты, CVV или срок действия — эти данные передаются напрямую от браузера к платёжному оператору по зашифрованному соединению и токенизируются до того, как попадут к нам.",
+        privacy_h4: "Шифрование и безопасность передачи",
+        privacy_p4: "Все данные, передаваемые между вашим браузером или устройством и нашими серверами, шифруются при передаче с использованием TLS/SSL. Конфиденциальные поля (платёжные токены, учётные данные) также шифруются при хранении.",
+        privacy_h5: "Безопасность приложения",
+        privacy_p5: "Мы следуем практикам безопасной разработки для защиты от распространённых веб-уязвимостей, включая проверку входных данных и параметризованные запросы для предотвращения инъекций, регулярные аудиты зависимостей и безопасности, а также контроль доступа к данным клиентов внутри компании.",
+        privacy_h6: "Файлы cookie",
+        privacy_p6: "Мы используем минимальные функциональные cookie для поддержания сессии и запоминания настроек. Мы не используем сторонние рекламные трекеры.",
+        privacy_h7: "Ваши права",
+        privacy_p7: "Вы можете в любой момент запросить копию своих данных, попросить их исправить или удалить свой аккаунт и связанные с ним данные, обратившись в нашу службу поддержки.",
+        privacy_gotit: "Понятно",
+        skip_link: "Перейти к основному содержимому",
+        aria_menu: "Меню", aria_lang: "Язык", aria_close: "Закрыть", aria_upload: "Прикрепить изображение",
+        aria_stats: "Ключевые факты", aria_rating: "Оценка 5 из 5",
+        stat_1: "Время отклика", stat_1_unit: "мс", stat_2: "Обработка на устройстве", stat_3: "Ежемесячная плата",
+        stat_4: "Гарантия и поддержка", stat_4_unit: "год",
+        demo_left: "Слева", demo_center: "Впереди", demo_right: "Справа",
+        demo_play: "Прослушать демо", demo_stop: "Стоп",
+        demo_hint: "Наденьте наушники — каждый сигнал звучит со своей стороны.",
+        contact_err_email: "Введите корректный адрес электронной почты.",
+        safety_title: "О безопасности",
+        safety_lead: "Blind AI — вспомогательное средство, оно не заменяет ваши основные средства передвижения.",
+        safety_1: "Продолжайте пользоваться белой тростью или собакой-поводырём — Blind AI дополняет их, а не заменяет.",
+        safety_2: "Ни одна система не распознаёт всё. При слабом освещении, в плохую погоду, рядом со стеклянными поверхностями или быстро движущимся транспортом возможны пропуски.",
+        safety_3: "Blind AI пока находится на стадии прототипа: точность и функции тестируются и улучшаются.",
+        road_title: 'Дорожная <span class="gradient-text">карта</span>',
+        road_desc: "На каком этапе Blind AI сегодня и что будет дальше.",
+        road_done: "Завершено", road_now: "Мы здесь", road_next: "Далее", road_planned: "В планах",
+        road_1_title: "Исследование и концепция", road_1_desc: "Мы изучили повседневные трудности в ориентировании и сформировали идею Blind AI.",
+        road_2_title: "Прототип", road_2_desc: "Создаём и тестируем первое рабочее устройство.",
+        road_3_title: "Пилот с первыми пользователями", road_3_desc: "Первые 10 пользователей пробуют Blind AI в повседневной жизни, а их отзывы определяют финальный продукт.",
+        road_4_title: "Производство и доставка", road_4_desc: "Дорабатываем устройство и отправляем первые заказы.",
+        org_title: 'Для <span class="gradient-text">организаций</span>',
+        org_desc: "Школы, общества и учреждения, которые поддерживают незрячих и слабовидящих людей, могут сделать Blind AI доступным для своего сообщества.",
+        org_1_title: "Школы и университеты", org_1_desc: "Дайте студентам больше самостоятельности в кампусе и по дороге на занятия.",
+        org_2_title: "Общества и НКО", org_2_desc: "Обеспечьте устройством участников вашего сообщества.",
+        org_3_title: "Реабилитационные центры", org_3_desc: "Поддержите занятия по ориентированию и мобильности.",
+        org_4_title: "Компании и госучреждения", org_4_desc: "Сделайте рабочие места и услуги доступнее.",
+        org_b1: '<strong>Оптовые заказы</strong> — цена на несколько устройств согласуется индивидуально',
+        org_b2: '<strong>Обучение</strong> — помощь с настройкой и обучение сотрудников и пользователей',
+        org_b3: '<strong>Пилотная программа</strong> — сначала попробуйте Blind AI с небольшой группой',
+        org_btn: "Запросить предложение",
+        wa_label: "Написать в WhatsApp",
+        wa_text: "Здравствуйте! Меня интересует Blind AI.",
+        wa_text_org: "Здравствуйте! Пишу от имени организации по поводу Blind AI.",
+        footer_roadmap: "Дорожная карта", footer_orgs: "Организациям", footer_safety: "Безопасность",
+        footer_tagline: "Видеть мир через звук.",
+        footer_product: "Продукт", footer_company: "Компания", footer_help: "Помощь", footer_faq: "Вопросы и ответы",
+        faq_title: 'Частые <span class="gradient-text">вопросы</span>',
+        faq_desc: "Короткие ответы на то, о чём нас спрашивают чаще всего.",
+        faq_1_q: "Заменяет ли Blind AI белую трость или собаку-поводыря?",
+        faq_1_a: "Нет. Blind AI — вспомогательное средство: оно даёт дополнительную информацию об окружении. Продолжайте пользоваться тростью или собакой-поводырём вместе с ним.",
+        faq_2_q: "На каком этапе сейчас Blind AI?",
+        faq_2_a: "Мы создаём и тестируем прототип. Дальше — пилот с первыми 10 пользователями, затем производство и доставка.",
+        faq_3_q: "Сколько стоит устройство?",
+        faq_3_a: "$1,000 разовым платежом, без подписки и ежемесячной платы. Первые 10 пользователей получат его за $800.",
+        faq_4_q: "Передаётся ли изображение с камеры в интернет?",
+        faq_4_a: "Нет. Обработка изображения и звука происходит на самом устройстве. Видео с камеры не загружается ни на наши серверы, ни кому-либо ещё.",
+        faq_5_q: "Есть ли гарантия?",
+        faq_5_a: "Да. На устройство действуют гарантия и поддержка в течение 1 года, а обновления ПО бесплатны навсегда.",
+        faq_6_q: "Может ли организация заказать несколько устройств?",
+        faq_6_a: "Да. Цена на несколько устройств согласуется индивидуально, также мы поможем с обучением и пилотной программой. Запросите предложение или напишите нам в WhatsApp.",
+        faq_more: "Не нашли ответ?",
+        a11y_open: "Настройки доступности", a11y_text: "Размер текста", a11y_contrast: "Высокий контраст", a11y_motion: "Остановить анимацию",
+        a11y_read: "Читать страницу вслух", a11y_read_stop: "Остановить чтение", a11y_reset: "Сбросить настройки",
+        a11y_no_voice: "На вашем устройстве нет голоса для этого языка. Выберите другой язык или установите голос в настройках системы.",
+        a11y_no_speech: "Ваш браузер не умеет читать текст вслух."
+      },
+      az: {
+        nav_how: "Necə İşləyir", nav_features: "Xüsusiyyətlər", nav_demo: "Demo", nav_pricing: "Qiymət", nav_contact: "Əlaqə", nav_cta: "Erkən Giriş Əldə Edin",
+        hero_badge: "Prototip mərhələsindəyik — erkən giriş açıqdır",
+        hero_title: 'Dünyanı<br><span class="gradient-text">Səs ilə Görün</span>',
+        hero_desc: "Blind AI ətrafınızı zəngin, məkani səsə çevirir. Sadəcə kameranız və qulaqcıqlarınızla dünyada özünüzə güvənərək hərəkət edin — heç bir xüsusi avadanlıq tələb olunmur.",
+        hero_btn_trial: "Sınaqa Başla", hero_btn_demo: "Demoya Bax",
+        how_title: 'Necə <span class="gradient-text">İşləyir</span>',
+        how_desc: "Ətrafınızdakı dünyanı yeni şəkildə hiss etmək üçün üç sadə addım.",
+        how_1_title: "Qulaqcıqlarınızı Qoşun", how_1_desc: "İstənilən Bluetooth qulaqcığı və ya AirPods-u smartfonunuza qoşun. Xüsusi avadanlıq lazım deyil — artıq sahib olduğunuzdan istifadə edin.",
+        how_2_title: "Kameranı Yönləndirin", how_2_desc: "Telefonu qarşınızda tutun və ya sinə üzərində bərkidici istifadə edin. Süni intellektimiz real vaxtda sizin gördüyünüzü görür.",
+        how_3_title: "Dünyanızı Eşidin", how_3_desc: "Ani məkani səs təsvirləri alın. Solunuzdakı obyektlər sol qulağınızda səslənir, qabaqdakı maneələr xəbərdarlıq siqnalı verir.",
+        feat_title: 'Güclü <span class="gradient-text">Xüsusiyyətlər</span>',
+        feat_desc: "Əlçatanlıq, sürət və real dünya etibarlılığı üçün sıfırdan hazırlanıb.",
+        feat_1_title: "Məkani Səs Xəritələməsi", feat_1_desc: "3D mövqe səsi obyektləri görmə sahənizdə olduqları yerdə yerləşdirir. Sol, sağ, yaxın, uzaq — qulaqlarınız gözlərinizə çevrilir.",
+        feat_2_title: "Real Vaxt Emalı", feat_2_desc: "100ms-dən az gecikmə ani rəy deməkdir. Süni intellektin hər addımınıza ayaqlaşdığını bilərək inamla yeriyin.",
+        feat_3_title: "Maneə Aşkarlanması", feat_3_desc: "Təhlükələri — bordürlər, dirəklər, pilləkənlər, nəqliyyat — avtomatik müəyyən edir və istiqamətli səs xəbərdarlıqları ilə sizi xəbərdar edir.",
+        feat_4_title: "Ağıllı Səsləndirmə", feat_4_desc: "Səhnələrin təbii dildə təsviri, mətn oxunması (OCR), üz tanınması və rəng aşkarlanması — hamısı səslə deyilir.",
+        feat_5_title: "Bütün Gün Batareya", feat_5_desc: "Telefonunuzda səmərəli işləmək üçün optimallaşdırılıb. Doldurulmalı əlavə cihaz yoxdur — sadəcə hər gün istifadə etdiyiniz smartfon və qulaqcıqlar.",
+        feat_6_title: "Əvvəlcə Məxfilik", feat_6_desc: "Bütün emal cihazda baş verir. Vizual məlumatlarınız heç vaxt telefonunuzu tərk etmir. Bulud yoxdur, server yoxdur, güzəşt yoxdur.",
+        demo_title: '<span class="gradient-text">Səsi</span> Yaşayın',
+        demo_desc: "Blind AI-nin vizual dünyanı səs istiqamətinə necə çevirdiyinə baxın.",
+        demo_scene_street: "Küçədə Gəzinti", demo_scene_home: "Daxili Naviqasiya", demo_scene_transit: "İctimai Nəqliyyat", demo_scene_shopping: "Alış-veriş",
+        test_title: '<span class="gradient-text">Cəmiyyət</span> Tərəfindən Sevilir',
+        test_desc: "Dünyanı artıq fərqli şəkildə gəzən real istifadəçilərin real hekayələri.",
+        test_1_text: '"Blind AI mənə müstəqilliyimi qaytardı. Beş ildə ilk dəfə tək ərzaq mağazasına gedə bilirəm. Məkani səs inanılmaz intuitivdir — sadəcə əşyaların harada olduğunu bilirəm."',
+        test_1_role: "Zəif görən istifadəçi, Çikaqo",
+        test_2_text: '"Yaxınlarda görmə qabiliyyətini itirən biri kimi, bu tətbiq həyat xətti oldu. Maneə aşkarlanması az qala çırpacağım aşağı sallanan budağı tutdu. Cibinizdə bələdçi it olması kimidir."',
+        test_2_role: "Kor istifadəçi, London",
+        test_3_text: '"Bunu tələbələrimlə istifadə edirəm və nəticələr heyrətamizdir. Lövhə və menyuları oxumaq üçün mətndən nitqə çevrilmə sürətli və dəqiqdir. Bu sadəcə tətbiq deyil — bu bir hərəkatdır."',
+        test_3_role: "İstiqamətləndirmə və Mobillik Mütəxəssisi",
+        price_title: 'Bir Cihaz. <span class="gradient-text">Bir Qiymət.</span>',
+        price_desc: "Müstəqilliyinizə tam sahib olun — abunəlik yoxdur, təkrar ödəniş yoxdur. Dünyanı necə yaşadığınızı dəyişən sadəcə bir cihaz.",
+        price_badge: "Blind AI Cihazı", price_onetime: "birdəfəlik",
+        price_tagline: "Dünyada özünüzə güvənərək hərəkət etmək üçün lazım olan hər şey — birdəfəlik alın, əbədi sizindir.",
+        price_feat_1: "Məkani səs xəritələməsi", price_feat_2: "Real vaxtda maneə aşkarlanması", price_feat_3: "Ağıllı səhnə səsləndirməsi və OCR",
+        price_feat_4: "Üz və rəng tanınması", price_feat_5: "Bütün gün batareya ömrü", price_feat_6: "Cihazda məxfilik — bulud yoxdur",
+        price_feat_7: "Pulsuz, ömürlük proqram yeniləmələri", price_feat_8: "1 illik zəmanət və dəstək", price_btn: "İndi Sifariş Ver",
+        early_badge: "Məhdud Müddət", early_title: "Erkən Quş Təklifi",
+        early_desc: 'İlk 10 istifadəçidən biri olun və Blind AI cihazınıza <strong>$200</strong> qənaət edin.',
+        early_spots: "10-dan cəmi bir neçə yer qalıb", early_btn: "Yerinizi Tutun",
+        cta_title: "Dünyanızı Eşitməyə Hazırsınız?", cta_desc: "Artıq inamla naviqasiya edən minlərlə insana qoşulun.", cta_btn: "Komandamızla Əlaqə",
+        footer_privacy: "Məxfilik", footer_accessibility: "Əlçatanlıq", footer_support: "Dəstək",
+        footer_copyright: "© 2026 Blind AI, Inc. Görmə əngəlli cəmiyyəti üçün qayğı ilə hazırlanıb.",
+        contact_title: "Komandamızla Əlaqə", contact_email_label: "E-poçtunuz", contact_msg_label: "Sizə necə kömək edə bilərik?",
+        contact_msg_placeholder: "Fikirlərinizi məmnuniyyətlə qarşılayırıq", contact_hint: "Rəy üçün şəkil yükləyə və ya yapışdıra bilərsiniz.",
+        contact_cancel: "Ləğv et", contact_submit: "Göndər",
+        contact_err_fill: "Zəhmət olmasa e-poçt və mesajınızı doldurun.", contact_sending: "Göndərilir...",
+        contact_success: "Təşəkkürlər! Mesajınız göndərildi.", contact_err_generic: "Nəsə səhv getdi. Yenidən cəhd edin.",
+        contact_err_network: "Şəbəkə xətası. Yenidən cəhd edin.",
+        privacy_title: "Məxfilik Siyasəti", privacy_updated: "Son yeniləmə: iyul 2026",
+        privacy_h1: "Cihazda Emal",
+        privacy_p1: "Blind AI bütün kamera, şəkil və audio emalını birbaşa cihazınızda həyata keçirir. Kameranız tərəfindən çəkilən vizual məlumatlar heç vaxt serverlərimizə və ya hər hansı üçüncü tərəfə yüklənmir və açıq şəkildə klip saxlamadığınız təqdirdə cari sessiyadan sonra saxlanılmır.",
+        privacy_h2: "Topladığımız Məlumatlar",
+        privacy_p2: "Yalnız hesabınızı və cihazınızı işlətmək üçün lazım olanları toplayırıq: adınız, e-poçt ünvanınız, çatdırılma ünvanınız və cihaz diaqnostikası (nasazlıq qeydləri, batareya, proqram versiyası). Kamera görüntülərinizin məzmununu toplamırıq və ya saxlamırıq.",
+        privacy_h3: "Ödənişlər və Kart Məlumatları",
+        privacy_p3: "Sifarişlər PCI-DSS uyğun ödəniş prosessoru vasitəsilə emal olunur. Blind AI heç vaxt tam kart nömrənizi, CVV-ni və ya bitmə tarixini görmür və ya saxlamır — bu məlumat brauzerinizdən birbaşa şifrələnmiş bağlantı üzərindən ödəniş prosessoruna gedir və bizə çatmazdan əvvəl tokenləşdirilir.",
+        privacy_h4: "Şifrələmə və Ötürmə Təhlükəsizliyi",
+        privacy_p4: "Brauzeriniz və ya cihazınız ilə serverlərimiz arasında ötürülən bütün məlumatlar TLS/SSL istifadə edərək şifrələnir. Həssas sahələr (ödəniş tokenləri, hesab məlumatları) saxlanılarkən də şifrələnir.",
+        privacy_h5: "Tətbiq Təhlükəsizliyi",
+        privacy_p5: "Ümumi veb zəifliklərindən qorunmaq üçün təhlükəsiz inkişaf təcrübələrinə əməl edirik, o cümlədən inyeksiya hücumlarının qarşısını almaq üçün giriş yoxlaması və parametrləşdirilmiş sorğular, mütəmadi asılılıq və təhlükəsizlik auditləri, və müştəri məlumatlarına daxili girişi məhdudlaşdıran nəzarətlər.",
+        privacy_h6: "Kukilər",
+        privacy_p6: "Sizi daxil olmuş saxlamaq və seçimlərinizi xatırlamaq üçün minimal, funksional kukilərdən istifadə edirik. Üçüncü tərəf reklam izləyicilərindən istifadə etmirik.",
+        privacy_h7: "Hüquqlarınız",
+        privacy_p7: "İstənilən vaxt dəstək komandamızla əlaqə saxlayaraq məlumatlarınızın surətini tələb edə, onları düzəltməyimizi istəyə və ya hesabınızı və əlaqəli məlumatları silməyimizi tələb edə bilərsiniz.",
+        privacy_gotit: "Anladım",
+        skip_link: "Əsas məzmuna keç",
+        aria_menu: "Menyu", aria_lang: "Dil", aria_close: "Bağla", aria_upload: "Şəkil əlavə et",
+        aria_stats: "Əsas faktlar", aria_rating: "5-dən 5 ulduz",
+        stat_1: "Cavab gecikməsi", stat_1_unit: "ms", stat_2: "Cihazda emal", stat_3: "Aylıq ödəniş",
+        stat_4: "Zəmanət və dəstək", stat_4_unit: "il",
+        demo_left: "Sol", demo_center: "Qabaq", demo_right: "Sağ",
+        demo_play: "Səsli demonu dinlə", demo_stop: "Dayandır",
+        demo_hint: "Qulaqcıq taxın — hər siqnal öz istiqamətindən səslənir.",
+        contact_err_email: "Düzgün e-poçt ünvanı daxil edin.",
+        safety_title: "Təhlükəsizlik qeydi",
+        safety_lead: "Blind AI köməkçi vasitədir — əsas hərəkət vasitələrinizi əvəz etmir.",
+        safety_1: "Ağ çubuqdan və ya bələdçi itdən istifadəni davam etdirin — Blind AI onları tamamlayır, əvəz etmir.",
+        safety_2: "Heç bir sistem hər şeyi aşkar etmir. Zəif işıqda, pis havada, şüşə səthlərin və sürətlə hərəkət edən nəqliyyatın yanında bəzi maneələr nəzərdən qaça bilər.",
+        safety_3: "Blind AI hələ prototip mərhələsindədir: dəqiqliyi və funksiyaları sınaqdan keçirilir və təkmilləşdirilir.",
+        road_title: 'Yol <span class="gradient-text">Xəritəmiz</span>',
+        road_desc: "Blind AI bu gün hansı mərhələdədir və qarşıda nə var.",
+        road_done: "Tamamlandı", road_now: "Buradayıq", road_next: "Növbəti", road_planned: "Planda",
+        road_1_title: "Araşdırma və konsept", road_1_desc: "Gündəlik hərəkət çətinliklərini öyrəndik və Blind AI ideyasını formalaşdırdıq.",
+        road_2_title: "Prototip", road_2_desc: "İlk işlək cihazı hazırlayır və sınaqdan keçiririk.",
+        road_3_title: "İlk istifadəçilərlə pilot", road_3_desc: "İlk 10 istifadəçi Blind AI-ni gündəlik həyatda sınayır, onların rəyi son məhsulu formalaşdırır.",
+        road_4_title: "İstehsal və çatdırılma", road_4_desc: "Cihazı yekunlaşdırır və ilk sifarişləri çatdırırıq.",
+        org_title: 'Təşkilatlar <span class="gradient-text">Üçün</span>',
+        org_desc: "Görmə məhdudiyyətli insanlara dəstək olan məktəblər, cəmiyyətlər və qurumlar Blind AI-ni öz icmalarına çatdıra bilər.",
+        org_1_title: "Məktəblər və universitetlər", org_1_desc: "Tələbələrə kampusda və dərsə gedən yolda daha çox müstəqillik verin.",
+        org_2_title: "Cəmiyyətlər və QHT-lər", org_2_desc: "İcmanızın üzvlərini cihazla təmin edin.",
+        org_3_title: "Reabilitasiya mərkəzləri", org_3_desc: "İstiqamətləndirmə və mobillik təlimlərinə dəstək olun.",
+        org_4_title: "Şirkətlər və dövlət qurumları", org_4_desc: "İş yerlərini və xidmətləri daha əlçatan edin.",
+        org_b1: '<strong>Toplu sifariş</strong> — bir neçə cihazın qiyməti fərdi razılaşdırılır',
+        org_b2: '<strong>Təlim</strong> — quraşdırmada kömək, işçilər və istifadəçilər üçün təlim',
+        org_b3: '<strong>Pilot proqram</strong> — Blind AI-ni əvvəlcə kiçik qrupla sınayın',
+        org_btn: "Təklif istəyin",
+        wa_label: "WhatsApp-da yazın",
+        wa_text: "Salam! Blind AI ilə maraqlanıram.",
+        wa_text_org: "Salam! Təşkilat adından Blind AI ilə bağlı yazıram.",
+        footer_roadmap: "Yol xəritəsi", footer_orgs: "Təşkilatlar üçün", footer_safety: "Təhlükəsizlik",
+        footer_tagline: "Dünyanı səs ilə görün.",
+        footer_product: "Məhsul", footer_company: "Şirkət", footer_help: "Kömək", footer_faq: "Tez-tez verilən suallar",
+        faq_title: 'Tez-tez Verilən <span class="gradient-text">Suallar</span>',
+        faq_desc: "Bizə ən çox verilən suallara qısa cavablar.",
+        faq_1_q: "Blind AI ağ çubuğu və ya bələdçi iti əvəz edirmi?",
+        faq_1_a: "Xeyr. Blind AI köməkçi vasitədir: ətrafınız haqqında əlavə məlumat verir. Ağ çubuqdan və ya bələdçi itdən onunla birlikdə istifadə etməyə davam edin.",
+        faq_2_q: "Blind AI hazırda hansı mərhələdədir?",
+        faq_2_a: "Prototipi hazırlayır və sınaqdan keçiririk. Növbəti addım ilk 10 istifadəçi ilə pilotdur, sonra istehsal və çatdırılma gələcək.",
+        faq_3_q: "Cihazın qiyməti nə qədərdir?",
+        faq_3_a: "Birdəfəlik ödənişlə $1,000 — abunə və aylıq ödəniş yoxdur. İlk 10 istifadəçi cihazı $800-a əldə edir.",
+        faq_4_q: "Kamera görüntüsü internetə göndərilirmi?",
+        faq_4_a: "Xeyr. Görüntü və səs emalı cihazın özündə aparılır. Kamera görüntüləriniz nə serverlərimizə, nə də başqa birinə yüklənir.",
+        faq_5_q: "Zəmanət varmı?",
+        faq_5_a: "Bəli. Cihaza 1 illik zəmanət və dəstək verilir, proqram yeniləmələri isə ömürlük pulsuzdur.",
+        faq_6_q: "Təşkilat bir neçə cihaz sifariş edə bilərmi?",
+        faq_6_a: "Bəli. Bir neçə cihazın qiyməti fərdi razılaşdırılır, təlim və pilot proqramda da kömək edə bilərik. Təklif istəyin və ya bizə WhatsApp-da yazın.",
+        faq_more: "Cavabınızı tapmadınız?",
+        a11y_open: "Əlçatanlıq ayarları", a11y_text: "Mətn ölçüsü", a11y_contrast: "Yüksək kontrast", a11y_motion: "Animasiyaları dayandır",
+        a11y_read: "Səhifəni səsli oxu", a11y_read_stop: "Oxumağı dayandır", a11y_reset: "Ayarları sıfırla",
+        a11y_no_voice: "Cihazınızda bu dil üçün səs yoxdur. Başqa dil seçin və ya sistem ayarlarından səs quraşdırın.",
+        a11y_no_speech: "Brauzeriniz mətni səsli oxuya bilmir."
+      }
+    };
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Motion is off when the system asks for it or the visitor switched it off in the accessibility panel
+    function motionOff() {
+      return prefersReducedMotion || document.documentElement.classList.contains('calm');
+    }
+
+    function storageGet(key) {
+      try { return localStorage.getItem(key); } catch (err) { return null; /* blocked in sandboxed/preview contexts */ }
+    }
+    function storageSet(key, value) {
+      try { localStorage.setItem(key, value); } catch (err) { /* blocked in sandboxed/preview contexts, safe to ignore */ }
+    }
+
+    // Priority: ?lang= in the URL, then the visitor's last choice, then the browser language
+    function detectLanguage() {
+      const fromUrl = new URLSearchParams(window.location.search).get('lang');
+      if (fromUrl && translations[fromUrl]) return fromUrl;
+      const saved = storageGet('blindai_lang');
+      if (saved && translations[saved]) return saved;
+      const browser = (navigator.language || 'en').slice(0, 2).toLowerCase();
+      return translations[browser] ? browser : 'en';
+    }
+
+    let currentLang = detectLanguage();
+
+    const whatsappUrl = 'https://wa.me/994516210763';
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.en;
+      stopDemo();
+      stopReading();
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key] !== undefined) el.innerHTML = dict[key];
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (dict[key] !== undefined) el.setAttribute('placeholder', dict[key]);
+      });
+      document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+        const key = el.getAttribute('data-i18n-aria-label');
+        if (dict[key] !== undefined) el.setAttribute('aria-label', dict[key]);
+      });
+      // WhatsApp links open the chat with a greeting already typed in the visitor's language
+      document.querySelectorAll('[data-wa]').forEach(el => {
+        el.href = whatsappUrl + '?text=' + encodeURIComponent(dict[el.dataset.wa]);
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        const isActive = btn.dataset.lang === lang;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+      document.documentElement.lang = lang;
+      currentLang = lang;
+      storageSet('blindai_lang', lang);
+
+      // Refresh the demo captions and status text for the currently active scenario
+      renderScene();
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
+    });
+
+    const sectionSlugs = ['how', 'features', 'demo', 'safety', 'roadmap', 'pricing', 'organizations', 'faq', 'contact'];
+    const scrollBehavior = () => (motionOff() ? 'auto' : 'smooth');
+
+    function safePushState(path) {
+      try { history.pushState(null, '', path); } catch (err) { /* blocked in sandboxed/preview contexts, safe to ignore */ }
+    }
+    function safeReplaceState(path) {
+      try { history.replaceState(null, '', path); } catch (err) { /* blocked in sandboxed/preview contexts, safe to ignore */ }
+    }
+
+    function scrollToId(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: scrollBehavior() });
+    }
+
+    function goToSection(e, id) {
+      if (e) e.preventDefault();
+      scrollToId(id);
+      safePushState('/' + id);
+      return false;
+    }
+
+    function goToHome() {
+      window.scrollTo({ top: 0, behavior: scrollBehavior() });
+      safePushState('/');
+    }
+
+    // If a GitHub Pages 404 fallback redirected us here with a saved path, restore it
+    (function () {
+      const redirect = sessionStorage.redirect;
+      delete sessionStorage.redirect;
+      if (redirect) {
+        safeReplaceState(redirect);
+      }
+    })();
+
+    // On load, if the URL already points at a known section path, scroll there
+    window.addEventListener('load', () => {
+      const path = window.location.pathname.replace(/^\/|\/$/g, '');
+      if (sectionSlugs.includes(path)) {
+        const el = document.getElementById(path);
+        if (el) setTimeout(() => el.scrollIntoView({ behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto' }), 50);
+      }
+    });
+
+    // Support browser back/forward buttons
+    window.addEventListener('popstate', () => {
+      const path = window.location.pathname.replace(/^\/|\/$/g, '');
+      if (sectionSlugs.includes(path)) {
+        scrollToId(path);
+      } else {
+        window.scrollTo({ top: 0, behavior: scrollBehavior() });
+      }
+    });
+
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let w, h;
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+      // Resizing clears the canvas, and with motion off nothing else would repaint it
+      if (motionOff() && particles.length) restartBg();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * w;
+        this.y = Math.random() * h;
+        this.vx = (Math.random() - 0.5) * 0.3;
+        this.vy = (Math.random() - 0.5) * 0.3;
+        this.size = Math.random() * 2 + 0.5;
+        this.alpha = Math.random() * 0.5 + 0.1;
+        this.hue = Math.random() > 0.5 ? 180 : 280;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > w) this.vx *= -1;
+        if (this.y < 0 || this.y > h) this.vy *= -1;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${this.alpha})`;
+        ctx.fill();
+      }
+    }
+
+    const particleCount = window.innerWidth < 768 ? 30 : 60;
+    for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+
+    let bgFrame = 0;
+
+    function animateBg() {
+      bgFrame = 0;
+      const moving = !motionOff();
+      ctx.clearRect(0, 0, w, h);
+      particles.forEach(p => { if (moving) p.update(); p.draw(); });
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 150) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(0, 229, 255, ${0.05 * (1 - dist / 150)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      if (moving) bgFrame = requestAnimationFrame(animateBg);
+    }
+
+    // Draws one frame now and keeps the loop going only while motion is allowed
+    function restartBg() {
+      if (bgFrame) cancelAnimationFrame(bgFrame);
+      animateBg();
+    }
+    restartBg();
+
+    const header = document.getElementById('siteHeader');
+    const navToggle = document.getElementById('navToggle');
+    const scrollProgress = document.getElementById('scrollProgress');
+
+    function setMenu(open) {
+      header.classList.toggle('menu-open', open);
+      navToggle.setAttribute('aria-expanded', String(open));
+    }
+    navToggle.addEventListener('click', () => setMenu(!header.classList.contains('menu-open')));
+    document.querySelectorAll('#navLinks a, #navLinks button').forEach(el => {
+      el.addEventListener('click', () => setMenu(false));
+    });
+
+    let scrollTicking = false;
+    function onScroll() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      header.classList.toggle('scrolled', window.scrollY > 50);
+      scrollProgress.style.transform = `scaleX(${max > 0 ? Math.min(window.scrollY / max, 1) : 0})`;
+      scrollTicking = false;
+    }
+    window.addEventListener('scroll', () => {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(onScroll);
+    }, { passive: true });
+    onScroll();
+
+    // Highlight the nav link of whichever section sits in the middle of the viewport
+    const navAnchors = {};
+    // Not every section has a nav link (roadmap, organizations and safety are reached from the footer)
+    sectionSlugs.forEach(id => {
+      const link = document.querySelector(`#navLinks a[href="/${id}"]`);
+      if (link) navAnchors[id] = link;
+    });
+    const spyObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const link = navAnchors[entry.target.id];
+        if (entry.isIntersecting) {
+          Object.values(navAnchors).forEach(a => a.removeAttribute('aria-current'));
+          link.setAttribute('aria-current', 'true');
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    Object.keys(navAnchors).forEach(id => spyObserver.observe(document.getElementById(id)));
+
+    const waveContainer = document.getElementById('soundWave');
+    const barCount = 24;
+    for (let i = 0; i < barCount; i++) {
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.animationDelay = `${i * 0.05}s`;
+      waveContainer.appendChild(bar);
+    }
+
+    const scenarios = {
+      street: {
+        text: { en: "Listening to street environment...", ru: "Прослушивание уличной обстановки...", az: "Küçə mühiti dinlənilir..." },
+        bars: [80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90,40,70,100,50,80,60,90],
+        cues: [
+          { pos: 'center', en: "Sidewalk ahead.", ru: "Впереди тротуар.", az: "Qabaqda səki." },
+          { pos: 'right', en: "Curb on your right.", ru: "Бордюр справа.", az: "Sağda bordür." },
+          { pos: 'left', en: "Person approaching from left.", ru: "Человек приближается слева.", az: "Soldan yaxınlaşan insan." }
+        ]
+      },
+      home: {
+        text: { en: "Navigating indoor space...", ru: "Навигация в помещении...", az: "Daxili məkanda naviqasiya..." },
+        bars: [30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60,30,40,50,30,40,60],
+        cues: [
+          { pos: 'center', en: "Door ahead, two meters.", ru: "Впереди дверь, два метра.", az: "Qabaqda qapı, iki metr." },
+          { pos: 'left', en: "Table on your left.", ru: "Стол слева.", az: "Solunuzda masa." },
+          { pos: 'right', en: "Stairs on your right.", ru: "Лестница справа.", az: "Sağınızda pilləkən." }
+        ]
+      },
+      transit: {
+        text: { en: "Monitoring transit surroundings...", ru: "Мониторинг обстановки в транспорте...", az: "Nəqliyyat ətrafı izlənilir..." },
+        bars: [60,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90,50,70,80,40,90],
+        cues: [
+          { pos: 'left', en: "Bus 14 arriving on your left.", ru: "Автобус номер 14 подъезжает слева.", az: "14 nömrəli avtobus soldan yaxınlaşır." },
+          { pos: 'center', en: "Doors open ahead.", ru: "Впереди открытые двери.", az: "Qabaqda qapılar açıqdır." },
+          { pos: 'right', en: "Empty seat on your right.", ru: "Свободное место справа.", az: "Sağınızda boş oturacaq." }
+        ]
+      },
+      shopping: {
+        text: { en: "Reading products and aisles...", ru: "Считывание товаров и рядов...", az: "Məhsullar və cərgələr oxunur..." },
+        bars: [40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80,50,40,60,30,80],
+        cues: [
+          { pos: 'center', en: "Dairy aisle ahead.", ru: "Впереди молочный отдел.", az: "Qabaqda süd məhsulları cərgəsi." },
+          { pos: 'left', en: "Milk on your left, second shelf.", ru: "Молоко слева, на второй полке.", az: "Süd solunuzda, ikinci rəfdə." },
+          { pos: 'right', en: "Checkout on your right.", ru: "Касса справа.", az: "Kassa sağınızdadır." }
+        ]
+      }
+    };
+
+    const cuePan = { left: -0.9, center: 0, right: 0.9 };
+    const cueLabelKey = { left: 'demo_left', center: 'demo_center', right: 'demo_right' };
+    const speechLang = { en: 'en-US', ru: 'ru-RU', az: 'az-AZ' };
+
+    const demoStatus = document.getElementById('demoStatus');
+    const demoCues = document.getElementById('demoCues');
+    const demoRadar = document.getElementById('demoRadar');
+    const demoPlay = document.getElementById('demoPlay');
+    const demoPlayLabel = document.getElementById('demoPlayLabel');
+
+    let currentScene = 'street';
+    let playToken = 0;
+    let audioCtx = null;
+
+    function renderScene() {
+      const scene = scenarios[currentScene];
+      const dict = translations[currentLang] || translations.en;
+      demoStatus.textContent = scene.text[currentLang] || scene.text.en;
+      demoCues.textContent = '';
+      scene.cues.forEach(cue => {
+        const item = document.createElement('li');
+        item.className = 'demo-cue';
+        item.dataset.pos = cue.pos;
+        const dir = document.createElement('span');
+        dir.className = 'cue-dir';
+        dir.textContent = dict[cueLabelKey[cue.pos]];
+        const text = document.createElement('span');
+        text.textContent = cue[currentLang] || cue.en;
+        item.append(dir, text);
+        demoCues.appendChild(item);
+      });
+      waveContainer.querySelectorAll('.bar').forEach((bar, i) => {
+        bar.style.setProperty('--h', scene.bars[i] * 0.5 + 'px');
+      });
+    }
+
+    function highlightCue(index, pos) {
+      demoCues.querySelectorAll('.demo-cue').forEach((item, i) => item.classList.toggle('is-active', i === index));
+      demoRadar.querySelectorAll('.radar-blip').forEach(blip => blip.classList.toggle('is-active', blip.dataset.pos === pos));
+    }
+
+    function setDemoPlaying(playing) {
+      const dict = translations[currentLang] || translations.en;
+      const key = playing ? 'demo_stop' : 'demo_play';
+      demoPlay.classList.toggle('is-playing', playing);
+      demoPlayLabel.setAttribute('data-i18n', key);
+      demoPlayLabel.textContent = dict[key];
+    }
+
+    // A short tone placed in the left ear, the right ear or the centre
+    function playPing(pan) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtx) audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(660, now + 0.35);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.25, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+      osc.connect(gain);
+      if (audioCtx.createStereoPanner) {
+        const panner = audioCtx.createStereoPanner();
+        panner.pan.value = pan;
+        gain.connect(panner);
+        panner.connect(audioCtx.destination);
+      } else {
+        gain.connect(audioCtx.destination);
+      }
+      osc.start(now);
+      osc.stop(now + 0.5);
+    }
+
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    function voiceFor(lang) {
+      const voices = window.speechSynthesis.getVoices();
+      const findVoice = prefix => voices.find(v => v.lang.toLowerCase().startsWith(prefix));
+      // Azerbaijani voices are rare; a Turkish voice reads it far better than an English one
+      return findVoice(lang) || (lang === 'az' ? findVoice('tr') : null);
+    }
+
+    // Voices load asynchronously; until the list arrives we cannot tell whether a language is missing
+    function voiceMissing(lang) {
+      return window.speechSynthesis.getVoices().length > 0 && !voiceFor(lang);
+    }
+
+    function speak(text, lang) {
+      return new Promise(resolve => {
+        const captionOnly = 900 + text.length * 40;
+        if (!('speechSynthesis' in window)) { setTimeout(resolve, captionOnly); return; }
+
+        const voice = voiceFor(lang);
+        // The device has voices, just none for this language: show the caption without speech
+        if (voiceMissing(lang)) { setTimeout(resolve, captionOnly); return; }
+
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = voice ? voice.lang : speechLang[lang];
+        if (voice) utter.voice = voice;
+        let done = false;
+        // Some browsers never fire onend, so the timer guarantees the demo moves on
+        const timer = setTimeout(finish, 2500 + text.length * 110);
+        function finish() {
+          if (done) return;
+          done = true;
+          clearTimeout(timer);
+          resolve();
+        }
+        utter.onend = finish;
+        utter.onerror = finish;
+        window.speechSynthesis.speak(utter);
+      });
+    }
+
+    function stopDemo() {
+      playToken++;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      highlightCue(-1, null);
+      setDemoPlaying(false);
+    }
+
+    async function playDemo() {
+      stopReading();
+      stopDemo();
+      const token = playToken;
+      const cues = scenarios[currentScene].cues;
+      setDemoPlaying(true);
+      for (let i = 0; i < cues.length; i++) {
+        highlightCue(i, cues[i].pos);
+        playPing(cuePan[cues[i].pos]);
+        await wait(450);
+        if (token !== playToken) return;
+        await speak(cues[i][currentLang] || cues[i].en, currentLang);
+        if (token !== playToken) return;
+        await wait(250);
+        if (token !== playToken) return;
+      }
+      stopDemo();
+    }
+
+    demoPlay.addEventListener('click', () => {
+      if (demoPlay.classList.contains('is-playing')) stopDemo(); else playDemo();
+    });
+
+    document.querySelectorAll('.scenario-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.scenario-btn').forEach(b => {
+          b.classList.toggle('active', b === btn);
+          b.setAttribute('aria-pressed', String(b === btn));
+        });
+        currentScene = btn.dataset.scene;
+        stopDemo();
+        renderScene();
+      });
+    });
+
+    // Cards in a grid reveal one after another rather than all at once
+    document.querySelectorAll('.steps, .features-grid, .testimonials-grid, .org-grid').forEach(group => {
+      group.querySelectorAll(':scope > .reveal').forEach((el, i) => { el.style.transitionDelay = `${i * 80}ms`; });
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        observer.unobserve(el);
+        // 'seen' stays for good; the roadmap uses it to draw its progress line once
+        el.classList.add('active', 'seen');
+        // Once revealed, drop the reveal classes so the element's own hover transitions apply again
+        const delay = parseFloat(el.style.transitionDelay) || 0;
+        setTimeout(() => {
+          el.classList.remove('reveal', 'active');
+          el.style.transitionDelay = '';
+        }, 900 + delay);
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    function runTicker(el) {
+      const to = Number(el.dataset.ticker);
+      const from = Number(el.dataset.tickerFrom || 0);
+      const start = performance.now();
+      const duration = 1400;
+      function frame(now) {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 4);
+        el.textContent = Math.round(from + (to - from) * eased);
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    if (!motionOff()) {
+      const tickerObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          tickerObserver.unobserve(entry.target);
+          runTicker(entry.target);
+        });
+      }, { threshold: 0.6 });
+      document.querySelectorAll('[data-ticker]').forEach(el => {
+        el.textContent = el.dataset.tickerFrom || 0;
+        tickerObserver.observe(el);
+      });
+    }
+
+    document.querySelectorAll('.spot').forEach(card => {
+      card.addEventListener('pointermove', (e) => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--my', `${e.clientY - rect.top}px`);
+      });
+    });
+
+    let lastFocused = null;
+
+    function openModal(overlay) {
+      lastFocused = document.activeElement;
+      overlay.classList.add('active');
+      document.body.classList.add('modal-open');
+      const target = overlay.querySelector('[data-autofocus]') || overlay.querySelector('.modal-close');
+      if (target) target.focus();
+    }
+    function closeModal(overlay) {
+      if (!overlay.classList.contains('active')) return;
+      overlay.classList.remove('active');
+      document.body.classList.remove('modal-open');
+      if (lastFocused && lastFocused.focus) lastFocused.focus();
+      lastFocused = null;
+    }
+
+    const contactOverlay = document.getElementById('contactModalOverlay');
+    const contactMessage = document.getElementById('contactMessage');
+    const contactEmail = document.getElementById('contactEmail');
+    const contactStatus = document.getElementById('contactStatus');
+    const contactSubmitBtn = document.getElementById('contactSubmitBtn');
+    const defaultContactSubject = 'Blind AI - Contact Our Team';
+    let contactSubject = defaultContactSubject;
+
+    function openContactModal(subject) {
+      contactSubject = subject || defaultContactSubject;
+      openModal(contactOverlay);
+    }
+    function closeContactModal() {
+      closeModal(contactOverlay);
+      contactMessage.value = '';
+      contactEmail.value = '';
+      contactStatus.textContent = '';
+      contactStatus.className = 'modal-status';
+    }
+    async function submitContactModal() {
+      const email = contactEmail.value.trim();
+      const message = contactMessage.value.trim();
+      const dict = translations[currentLang] || translations.en;
+
+      if (!email || !message) {
+        contactStatus.textContent = dict.contact_err_fill;
+        contactStatus.className = 'modal-status error';
+        (email ? contactMessage : contactEmail).focus();
+        return;
+      }
+      if (!contactEmail.checkValidity()) {
+        contactStatus.textContent = dict.contact_err_email;
+        contactStatus.className = 'modal-status error';
+        contactEmail.focus();
+        return;
+      }
+
+      contactSubmitBtn.disabled = true;
+      contactSubmitBtn.textContent = dict.contact_sending;
+      contactStatus.textContent = '';
+      contactStatus.className = 'modal-status';
+
+      try {
+        const response = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_key: '1013f166-dac5-426a-99a6-200c64053479',
+            subject: contactSubject,
+            email: email,
+            message: message
+          })
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          contactStatus.textContent = dict.contact_success;
+          contactStatus.className = 'modal-status success';
+          setTimeout(closeContactModal, 1800);
+        } else {
+          contactStatus.textContent = dict.contact_err_generic;
+          contactStatus.className = 'modal-status error';
+        }
+      } catch (err) {
+        contactStatus.textContent = dict.contact_err_network;
+        contactStatus.className = 'modal-status error';
+      } finally {
+        contactSubmitBtn.disabled = false;
+        contactSubmitBtn.textContent = dict.contact_submit;
+      }
+    }
+    contactOverlay.addEventListener('click', (e) => {
+      if (e.target === contactOverlay) closeContactModal();
+    });
+
+    const privacyOverlay = document.getElementById('privacyModalOverlay');
+    function openPrivacyModal() {
+      openModal(privacyOverlay);
+    }
+    function closePrivacyModal() {
+      closeModal(privacyOverlay);
+    }
+    privacyOverlay.addEventListener('click', (e) => {
+      if (e.target === privacyOverlay) closePrivacyModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const openOverlay = document.querySelector('.modal-overlay.active');
+      if (e.key === 'Escape') {
+        if (openOverlay === contactOverlay) closeContactModal();
+        else if (openOverlay === privacyOverlay) closePrivacyModal();
+        else if (!a11yPanel.hidden) { setA11yPanel(false); a11yToggle.focus(); }
+        else setMenu(false);
+        return;
+      }
+      // Keep Tab inside the open dialog
+      if (e.key !== 'Tab' || !openOverlay) return;
+      const focusable = [...openOverlay.querySelectorAll('a[href], button:not([disabled]), input, textarea, [tabindex]:not([tabindex="-1"])')];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+
+    // Accessibility panel: text size, high contrast, calm mode and reading the page aloud.
+    // The inline script in <head> applies saved settings before first paint; this keeps them in sync.
+    const root = document.documentElement;
+    const a11yToggle = document.getElementById('a11yToggle');
+    const a11yPanel = document.getElementById('a11yPanel');
+    const a11yRead = document.getElementById('a11yRead');
+    const a11yReadLabel = document.getElementById('a11yReadLabel');
+    const a11yStatus = document.getElementById('a11yStatus');
+
+    function loadA11y() {
+      try { return JSON.parse(storageGet('blindai_a11y') || '{}') || {}; } catch (err) { return {}; }
+    }
+    let a11y = loadA11y();
+
+    function renderA11y() {
+      const size = a11y.text || 'md';
+      root.classList.toggle('text-lg', size === 'lg');
+      root.classList.toggle('text-xl', size === 'xl');
+      root.classList.toggle('hc', !!a11y.contrast);
+      root.classList.toggle('calm', !!a11y.calm);
+      document.querySelectorAll('[data-text-size]').forEach(btn => {
+        btn.setAttribute('aria-pressed', String(btn.dataset.textSize === size));
+      });
+      document.querySelectorAll('[data-a11y-switch]').forEach(btn => {
+        btn.setAttribute('aria-checked', String(!!a11y[btn.dataset.a11ySwitch]));
+      });
+      // A dot on the button reminds the visitor that something is switched on
+      a11yToggle.classList.toggle('is-active', size !== 'md' || !!a11y.contrast || !!a11y.calm);
+    }
+
+    function saveA11y() {
+      storageSet('blindai_a11y', JSON.stringify(a11y));
+      renderA11y();
+      restartBg();
+    }
+
+    function setA11yPanel(open) {
+      a11yPanel.hidden = !open;
+      a11yToggle.setAttribute('aria-expanded', String(open));
+      if (open) a11yPanel.querySelector('[data-text-size]').focus();
+    }
+    function openA11yPanel() {
+      setA11yPanel(true);
+    }
+
+    a11yToggle.addEventListener('click', () => setA11yPanel(a11yPanel.hidden));
+    document.addEventListener('click', (e) => {
+      if (a11yPanel.hidden || a11yPanel.contains(e.target) || a11yToggle.contains(e.target) || e.target.closest('[data-open-a11y]')) return;
+      setA11yPanel(false);
+    });
+
+    document.querySelectorAll('[data-text-size]').forEach(btn => {
+      btn.addEventListener('click', () => { a11y.text = btn.dataset.textSize; saveA11y(); });
+    });
+    document.querySelectorAll('[data-a11y-switch]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.a11ySwitch;
+        a11y[key] = !a11y[key];
+        saveA11y();
+      });
+    });
+    document.getElementById('a11yReset').addEventListener('click', () => {
+      a11y = {};
+      stopReading();
+      a11yStatus.textContent = '';
+      saveA11y();
+    });
+
+    let readToken = 0;
+    let readingEl = null;
+
+    function setReading(on) {
+      const dict = translations[currentLang] || translations.en;
+      const key = on ? 'a11y_read_stop' : 'a11y_read';
+      a11yRead.classList.toggle('is-playing', on);
+      a11yReadLabel.setAttribute('data-i18n', key);
+      a11yReadLabel.textContent = dict[key];
+    }
+
+    function markReading(el) {
+      if (readingEl) readingEl.classList.remove('is-reading');
+      readingEl = el;
+      if (el) {
+        el.classList.add('is-reading');
+        el.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
+      }
+    }
+
+    function stopReading() {
+      readToken++;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      markReading(null);
+      setReading(false);
+    }
+
+    // Visible text blocks of the page in reading order; containers are skipped so nothing is read twice
+    function readableBlocks() {
+      const blocks = ['h1', 'h2', 'h3', 'p', 'li', 'blockquote', 'dt', 'dd', 'summary'];
+      const selector = blocks.map(tag => 'main ' + tag).join(', ');
+      return [...document.querySelectorAll(selector)].filter(el =>
+        el.offsetParent !== null &&
+        !el.closest('[aria-hidden="true"]') &&
+        !el.querySelector(blocks.join(', ')) &&
+        el.innerText.trim()
+      );
+    }
+
+    // Short sentences keep long paragraphs from being cut off by some browser voices
+    function sentences(text) {
+      return text.replace(/\s+/g, ' ').match(/[^.!?…]+[.!?…]*/g) || [text];
+    }
+
+    async function startReading() {
+      const dict = translations[currentLang] || translations.en;
+      stopDemo();
+      stopReading();
+      if (!('speechSynthesis' in window)) { a11yStatus.textContent = dict.a11y_no_speech; return; }
+      if (voiceMissing(currentLang)) { a11yStatus.textContent = dict.a11y_no_voice; return; }
+      a11yStatus.textContent = '';
+      const token = readToken;
+      setReading(true);
+      for (const el of readableBlocks()) {
+        markReading(el);
+        for (const part of sentences(el.innerText)) {
+          if (!part.trim()) continue;
+          await speak(part.trim(), currentLang);
+          if (token !== readToken) return;
+        }
+      }
+      stopReading();
+    }
+
+    a11yRead.addEventListener('click', () => {
+      if (a11yRead.classList.contains('is-playing')) stopReading(); else startReading();
+    });
+
+    renderA11y();
+    applyLanguage(currentLang);
+  </script>
+</body>
+</html>
