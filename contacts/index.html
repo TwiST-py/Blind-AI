@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blind AI — Əlaqə</title>
+  <meta name="description" content="Blind AI ilə əlaqə: sayt, email və telefon.">
+  <meta name="theme-color" content="#050508">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050508;
+      --bg-card: #10101a;
+      --accent-cyan: #00e5ff;
+      --accent-purple: #e040fb;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0b8;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.16);
+      --gradient-1: linear-gradient(135deg, #00e5ff, #2979ff, #e040fb);
+      --gradient-2: linear-gradient(90deg, #00e5ff, #e040fb);
+      --font-display: 'Space Grotesk', 'Inter', sans-serif;
+      --font-body: 'Inter', sans-serif;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { color-scheme: dark; }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      font-family: var(--font-body);
+      color: var(--text-primary);
+      background:
+        radial-gradient(ellipse at 20% 0%, rgba(0,229,255,0.14), transparent 55%),
+        radial-gradient(ellipse at 90% 100%, rgba(224,64,251,0.12), transparent 55%),
+        var(--bg);
+      line-height: 1.5;
+    }
+    :focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 3px; }
+
+    .lang-switch {
+      position: fixed; top: 16px; right: 16px;
+      display: flex; gap: 2px; padding: 3px;
+      border: 1px solid var(--border); border-radius: 100px;
+      background: rgba(16,16,26,0.8);
+    }
+    .lang-btn {
+      border: 0; background: transparent; color: var(--text-secondary);
+      font: 600 0.8rem var(--font-body); padding: 6px 11px; border-radius: 100px; cursor: pointer;
+    }
+    .lang-btn.active { background: var(--gradient-2); color: #05050a; }
+
+    .card { width: 100%; max-width: 420px; text-align: center; }
+
+    .logo {
+      width: 96px; height: 96px; margin: 0 auto 20px;
+      border-radius: 26px; padding: 2px;
+      background: var(--gradient-1);
+      box-shadow: 0 12px 40px rgba(0,229,255,0.25), 0 12px 40px rgba(224,64,251,0.18);
+    }
+    .logo img, .logo span {
+      width: 100%; height: 100%; border-radius: 24px; display: block; object-fit: cover; background: var(--bg);
+    }
+    .logo span {
+      display: none; align-items: center; justify-content: center;
+      font: 700 2.2rem var(--font-display);
+    }
+    .logo.no-img img { display: none; }
+    .logo.no-img span { display: flex; }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 2rem; font-weight: 700; letter-spacing: -0.02em;
+      background: var(--gradient-2);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .tagline { color: var(--text-secondary); margin: 6px 0 32px; font-size: 1rem; }
+
+    .links { display: flex; flex-direction: column; gap: 12px; }
+    .link {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      color: var(--text-primary); text-decoration: none; text-align: left;
+      transition: border-color .2s, transform .2s, background .2s;
+    }
+    .link:hover, .link:active { border-color: var(--border-strong); background: #141422; transform: translateY(-1px); }
+    .ico {
+      flex: none; width: 46px; height: 46px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,229,255,0.1); color: var(--accent-cyan);
+    }
+    .link:nth-child(2) .ico { background: rgba(41,121,255,0.12); color: #6ea2ff; }
+    .link:nth-child(3) .ico { background: rgba(224,64,251,0.12); color: var(--accent-purple); }
+    .ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .txt { display: flex; flex-direction: column; min-width: 0; }
+    .label { font-weight: 600; font-size: 1rem; }
+    .val { color: var(--text-secondary); font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .arrow { margin-left: auto; color: var(--text-secondary); flex: none; }
+    .arrow svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+
+    footer { margin-top: 32px; color: var(--text-secondary); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button class="lang-btn" data-lang="az" lang="az">Az</button>
+    <button class="lang-btn" data-lang="ru" lang="ru">Ru</button>
+    <button class="lang-btn" data-lang="en" lang="en">En</button>
+  </div>
+
+  <main class="card">
+    <div class="logo" id="logo">
+      <img src="/logo-96.webp" alt="" width="96" height="96" onerror="document.getElementById('logo').classList.add('no-img')">
+      <span aria-hidden="true">B</span>
+    </div>
+    <h1>Blind AI</h1>
+    <p class="tagline" data-i18n="tagline">Dünyanı səs ilə görün</p>
+
+    <div class="links">
+      <a class="link" href="https://blindai.store/">
+        <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>
+        <span class="txt"><span class="label" data-i18n="site">Sayta keç</span><span class="val">blindai.store</span></span>
+        <span class="arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>
+      </a>
+
+      <a class="link" href="mailto:ceferovsaid371@gmail.com">
+        <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg></span>
+        <span class="txt"><span class="label" data-i18n="email">Email yaz</span><span class="val">ceferovsaid371@gmail.com</span></span>
+        <span class="arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>
+      </a>
+
+      <a class="link" href="tel:+994516210763">
+        <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+        <span class="txt"><span class="label" data-i18n="call">Zəng et</span><span class="val">+994 51 621 07 63</span></span>
+        <span class="arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></span>
+      </a>
+    </div>
+
+    <footer>© 2026 Blind AI</footer>
+  </main>
+
+  <script>
+    var T = {
+      az: { title: 'Blind AI — Əlaqə', tagline: 'Dünyanı səs ilə görün', site: 'Sayta keç', email: 'Email yaz', call: 'Zəng et' },
+      ru: { title: 'Blind AI — Контакты', tagline: 'Видеть мир через звук', site: 'Перейти на сайт', email: 'Написать на почту', call: 'Позвонить' },
+      en: { title: 'Blind AI — Contact', tagline: 'See the world through sound', site: 'Visit website', email: 'Send an email', call: 'Call us' }
+    };
+    function setLang(lang) {
+      if (!T[lang]) lang = 'az';
+      var d = T[lang];
+      document.documentElement.lang = lang;
+      document.title = d.title;
+      document.querySelectorAll('[data-i18n]').forEach(function (el) { el.textContent = d[el.dataset.i18n]; });
+      document.querySelectorAll('.lang-btn').forEach(function (b) {
+        var on = b.dataset.lang === lang;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+      try { localStorage.setItem('blindai_lang', lang); } catch (e) {}
+    }
+    document.querySelectorAll('.lang-btn').forEach(function (b) {
+      b.addEventListener('click', function () { setLang(b.dataset.lang); });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem('blindai_lang'); } catch (e) {}
+    var browser = (navigator.language || '').slice(0, 2);
+    setLang(saved || (T[browser] ? browser : 'az'));
+  </script>
+</body>
+</html>
